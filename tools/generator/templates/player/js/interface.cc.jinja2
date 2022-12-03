@@ -206,6 +206,30 @@ bool js_to_cxx(JSContext* cx, JS::HandleValue in, {{ struct.str_name }}& out) {
 }
 {% endfor %}
 
+{% for enum in game.enum %}
+bool define_enum_{{ enum.enum_name }}(JSContext* cx, JS::HandleObject global) {
+    JS::RootedObject obj(cx, JS_NewPlainObject(cx));
+    JS::RootedValue i(cx);
+    {% for field_name, _ in enum.enum_field %}
+    i = JS::Int32Value({{ loop.index0 }});
+    JS_SetProperty(cx, obj, "{{ field_name|camel_case }}", i);
+    {% endfor %}
+
+    JS_FreezeObject(cx, obj);
+    JS::RootedValue val(cx, JS::ObjectValue(*obj));
+    JS_SetProperty(cx, global, "{{ enum.enum_name|camel_case }}", val);
+    return true;
+}
+
+{% endfor %}
+{% for constant in game.constant %}
+void define_const_{{ constant.cst_name|lower }}(JSContext* cx, JS::HandleObject global) {
+    JS::RootedValue val(cx, {{ constant|js_const_val }});
+    JS_SetProperty(cx, global, "{{ constant.cst_name }}", val);
+}
+
+{% endfor %}
+
 static bool initialized = false;
 
 // Call `JS_ShutDown()` to avoid a segfault on exit
@@ -235,6 +259,15 @@ static void init_js() {
     static JSClass GlobalClass = {"Stechec", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
     global = JS::PersistentRootedObject(cx, JS_NewGlobalObject(cx, &GlobalClass, nullptr, JS::FireOnNewGlobalHook, JS::RealmOptions()));
     JS::EnterRealm(cx, global);
+
+    {% for enum in game.enum %}
+    define_enum_{{ enum.enum_name }}(cx, global);
+    {% endfor %}
+    {% for constant in game.constant %}
+    define_const_{{ constant.cst_name|lower }}(cx, global);
+    {% endfor %}
+    if (JS_IsExceptionPending(cx))
+        throw 42;
 
     const char* champion_path = getenv("CHAMPION_PATH");
     std::string champion;

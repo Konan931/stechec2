@@ -76,6 +76,17 @@ def js_func_definition(func) -> str:
 
 
 @register_filter
+def js_const_val(constant) -> str:
+    val, ty = constant['cst_val'], constant['cst_type']
+    if ty == 'int':
+        return 'JS::Int32Value({})'.format(val)
+    if ty == 'double':
+        return 'JS::DoubleValue({})'.format(val)
+    if ty == 'string':
+        return 'JS::StringValue(JS_NewStringCopyZ(cx, {}))'.format(val)
+
+
+@register_filter
 def cxx_to_js(value: str) -> str:
     if is_array(value):
         return 'cxx_to_js_array'
