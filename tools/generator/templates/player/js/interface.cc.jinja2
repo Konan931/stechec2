@@ -5,9 +5,12 @@
 #include <js/Array.h>
 #include <js/CompilationAndEvaluation.h>
 #include <js/Conversions.h>
+#include <js/ErrorReport.h>
 #include <js/Initialization.h>
 #include <jsapi.h>
+#include <mozilla/mozalloc_abort.h>
 
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -354,6 +357,29 @@ static void init_js() {
         throw 42;
 }
 
+static void js_report_error() {
+    if (!JS_IsExceptionPending(cx))
+        return;
+    JS::RootedValue exc(cx);
+    JS::ExceptionStack stack(cx);
+    JS_GetPendingException(cx, &exc);
+    JS::GetPendingExceptionStack(cx, &stack);
+    JS_ClearPendingException(cx);
+
+    JS::ErrorReportBuilder report(cx);
+    report.init(cx, stack, JS::ErrorReportBuilder::WithSideEffects);
+    JS::PrintError(stderr, report, true);
+
+    JS::RootedString js_bt(cx);
+    if (!stack.stack() || !JS::BuildStackString(cx, nullptr, stack.stack(), &js_bt, 2)) {
+        std::cerr << "(no stack trace available)" << std::endl;
+        return;
+    }
+    std::string bt;
+    js_encode_string(cx, js_bt, bt);
+    std::cerr << bt;
+}
+
 {% for func in game.user_function %}
 extern "C" {{ func|cxx_prototype }} {
     init_js();
@@ -370,8 +396,10 @@ extern "C" {{ func|cxx_prototype }} {
     JS::HandleValueArray args = JS::HandleValueArray::empty();
     {% endif %}
 
-    {# TODO handle JS exceptions #}
-    JS_CallFunctionName(cx, global, "{{ func.fct_name|camel_case(upper=False) }}", args, &js_ret);
+    if (!JS_CallFunctionName(cx, global, "{{ func.fct_name|camel_case(upper=False) }}", args, &js_ret)) {
+        js_report_error();
+        mozalloc_abort("");
+    }
     {% if func is returning %}
 
     {{ func.fct_ret_type|cxx_type }} cxx_ret;
