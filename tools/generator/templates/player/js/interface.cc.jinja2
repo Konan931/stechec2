@@ -317,3 +317,33 @@ static void init_js() {
     if (!JS::EvaluateUtf8Path(cx, JS::OwningCompileOptions(cx), champion.c_str(), &_rval))
         throw 42;
 }
+
+{% for func in game.user_function %}
+extern "C" {{ func|cxx_prototype }} {
+    init_js();
+
+    JS::RootedValue js_ret(cx);
+    {% if func.fct_arg %}
+    JS::RootedValueArray<{{ func.fct_arg|length }}> args(cx);
+    {% for arg_name, arg_type, _ in func.fct_arg %}
+    {{ arg_type|cxx_to_js }}(cx, {{ arg_name }}, args[{{ loop.index0 }}]);
+    {% endfor %}
+    if (JS_IsExceptionPending(cx))
+        throw 42;
+    {% else %}
+    JS::HandleValueArray args = JS::HandleValueArray::empty();
+    {% endif %}
+
+    {# TODO handle JS exceptions #}
+    JS_CallFunctionName(cx, global, "{{ func.fct_name|camel_case(upper=False) }}", args, &js_ret);
+    {% if func is returning %}
+
+    {{ func.fct_ret_type|cxx_type }} cxx_ret;
+    if (!{{ func.fct_ret_type|js_to_cxx }}(cx, js_ret, cxx_ret))
+        {# FIXME: this needs a better error message #}
+        throw 42;
+    return cxx_ret;
+    {% endif %}
+}
+
+{% endfor %}
