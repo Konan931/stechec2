@@ -1,2 +1,206 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Copyright (c) 2020 Association Prologin <association@prologin.org>
+{% import 'macros/cxx.jinja2' as cxx %}
+
+#include <js/Array.h>
+#include <jsapi.h>
+
+#include <string>
+#include <vector>
+
+{% for enum in game.enum %}
+{{ cxx.decl_enum(enum) }}
+
+{% endfor %}
+{% for struct in game.struct %}
+{{ cxx.decl_struct(struct) }}
+
+{% endfor %}
+extern "C" {
+{% for func in game.function %}
+{{ func.fct_summary|cxx_comment(doc=True) }}
+{{ func|cxx_prototype(prefix='api_') }};
+
+{% endfor %}
+}
+
+/// Utility for converting a `JSString` into a C++ `std::string`
+bool js_encode_string(JSContext* cx, JSString* in, std::string& out) {
+    JS::AutoCheckCannotGC _nogc;
+    JSLinearString* s = JS_EnsureLinearString(cx, in);
+    if (!s)
+        return false;
+    size_t len = JS::GetDeflatedUTF8StringLength(s);
+    out.resize(len);
+    JS::DeflateStringToUTF8Buffer(s, out);
+    return true;
+}
+
+template <typename CxxType>
+void cxx_to_js(JSContext* cx, CxxType in, JS::MutableHandleValue out) {
+    return in.__if_that_triggers_an_error_there_is_a_problem;
+}
+
+template <typename CxxType>
+bool js_to_cxx(JSContext* cx, JS::HandleValue in, CxxType& out) {
+    return CxxType::__if_that_triggers_an_error_there_is_a_problem;
+}
+
+template<>
+void cxx_to_js(JSContext* cx, int i, JS::MutableHandleValue out) {
+    out.setInt32(i);
+}
+
+template <>
+bool js_to_cxx(JSContext* cx, JS::HandleValue in, int& out) {
+    if (!in.isInt32())
+        return false;
+    out = in.toInt32();
+    return true;
+}
+
+template <>
+void cxx_to_js(JSContext* cx, double x, JS::MutableHandleValue out) {
+    out.setNumber(x);
+}
+
+template <>
+bool js_to_cxx(JSContext* cx, JS::HandleValue in, double& out) {
+    if (!in.isNumber())
+        return false;
+    out = in.toNumber();
+    return true;
+}
+
+template <>
+void cxx_to_js(JSContext* cx, std::string s, JS::MutableHandleValue out) {
+    JSString* str = JS_NewStringCopyN(cx, s.data(), s.size());
+    if (!str) {
+        JS_ReportOutOfMemory(cx);
+        return;
+    }
+    out.setString(str);
+}
+
+template <>
+bool js_to_cxx(JSContext* cx, JS::HandleValue in, std::string& out) {
+    if (!in.isString())
+        return false;
+    JSString* str = in.toString();
+    return js_encode_string(cx, str, out);
+}
+
+template <>
+void cxx_to_js(JSContext* cx, bool b, JS::MutableHandleValue out) {
+    out.setBoolean(b);
+}
+
+template <>
+bool js_to_cxx(JSContext* cx, JS::HandleValue in, bool& out) {
+    if (!in.isBoolean())
+        return false;
+    out = in.toBoolean();
+    return true;
+}
+
+template <typename CxxType>
+void cxx_to_js_array(JSContext* cx, const std::vector<CxxType>& in, JS::MutableHandleValue out) {
+    JS::RootedValueVector v(cx);
+    if (!v.resize(in.size())) {
+        JS_ReportOutOfMemory(cx);
+        return;
+    }
+    for (size_t i = 0; i < in.size(); i++)
+        cxx_to_js<CxxType>(cx, in[i], v[i]);
+    out.setObject(*JS::NewArrayObject(cx, v));
+}
+
+template <typename CxxType>
+bool js_to_cxx_array(JSContext* cx, JS::HandleValue in, std::vector<CxxType>& out) {
+    bool is_array;
+    if (!JS::IsArrayObject(cx, in, &is_array) || !is_array)
+        return false;
+    JS::RootedObject arr(cx, &in.toObject());
+
+    uint32_t len;
+    if (!JS::GetArrayLength(cx, arr, &len))
+        return false;
+
+    out.clear();
+    out.reserve(len);
+    for (uint32_t i = 0; i < len; i++) {
+        JS::RootedValue jsval(cx);
+        CxxType cxxval;
+        if (!JS_GetElement(cx, arr, i, &jsval) || !js_to_cxx<CxxType>(cx, jsval, (CxxType&)cxxval))
+            return false;
+        out.push_back(cxxval);
+    }
+    return true;
+}
+
+{% for enum in game.enum %}
+template<>
+void cxx_to_js(JSContext* cx, {{ enum.enum_name }} in, JS::MutableHandleValue out) {
+    cxx_to_js(cx, (int)in, out);
+}
+
+template<>
+bool js_to_cxx(JSContext* cx, JS::HandleValue in, {{ enum.enum_name }}& out) {
+    return js_to_cxx(cx, in, (int&)out);
+}
+
+{% endfor %}
+
+{% for struct in game.struct %}
+template<>
+void cxx_to_js(JSContext* cx, {{ struct.str_name }} in, JS::MutableHandleValue out) {
+    JS::RootedValueVector v(cx);
+    if (!v.resize({{ struct.str_field|length }})) {
+        JS_ReportOutOfMemory(cx);
+        return;
+    }
+    {% for field_name, field_type, _ in struct.str_field %}
+    {{ field_type|cxx_to_js }}(cx, in.{{ field_name }}, v[{{ loop.index0 }}]);
+    {% endfor %}
+
+    {% if struct.str_tuple %}
+    out.setObject(*JS::NewArrayObject(cx, v));
+    {% else %}
+    JS::RootedObject obj(cx, JS_NewPlainObject(cx));
+    {% for field_name, _, _ in struct.str_field %}
+    JS_SetProperty(cx, obj, "{{ field_name|camel_case(upper=False) }}", v[{{ loop.index0 }}]);
+    {% endfor %}
+    out.setObject(*obj);
+    {% endif %}
+}
+
+template<>
+bool js_to_cxx(JSContext* cx, JS::HandleValue in, {{ struct.str_name }}& out) {
+    if (!in.isObject())
+        return false;
+    JS::RootedObject obj(cx, &in.toObject());
+    {% if struct.str_tuple %}
+    bool is_array;
+    uint32_t len;
+    if (!JS::IsArray(cx, obj, &is_array) || !is_array ||
+        !JS::GetArrayLength(cx, obj, &len) || len != {{ struct.str_field|length }})
+        return false;
+    {% endif %}
+    
+    {% for field_name, _, _ in struct.str_field %}
+    JS::RootedValue {{ field_name }}(cx);
+    {% endfor %}
+
+    return true
+        {% for field_name, field_type, _ in struct.str_field %}
+        {% if struct.str_tuple %}
+        && JS_GetElement(cx, obj, {{ loop.index0 }}, &{{ field_name }})
+        {% else %}
+        && JS_GetProperty(cx, obj, "{{ field_name|camel_case(upper=False) }}", &{{ field_name }})
+        {% endif %}
+        && {{ field_type|js_to_cxx }}(cx, {{ field_name }}, out.{{ field_name }})
+        {% endfor %}
+    ;
+}
+{% endfor %}
+

@@ -73,3 +73,19 @@ def js_func_definition(func) -> str:
     args = ', '.join(
         camel_case(arg, upper=False) for arg, _, _ in func['fct_arg'])
     return '{}({})'.format(camel_case(func['fct_name'], upper=False), args)
+
+
+@register_filter
+def cxx_to_js(value: str) -> str:
+    if is_array(value):
+        return 'cxx_to_js_array'
+    else:
+        return 'cxx_to_js'
+
+
+@register_filter
+def js_to_cxx(value: str) -> str:
+    if is_array(value):
+        return 'js_to_cxx_array'
+    else:
+        return 'js_to_cxx'
