@@ -40,6 +40,9 @@ class TestLanguages(unittest.TestCase):
     def test_java(self):
         self.run_language_tests('java', 'Champion.java')
 
+    def test_js(self):
+        self.run_language_tests('js', 'champion.js')
+
     def test_php(self):
         self.run_language_tests('php', 'champion.php')
 
