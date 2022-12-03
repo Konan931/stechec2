@@ -32,6 +32,10 @@ LANGUAGES = {
     'java': {
         'files': ['Champion.java', 'Makefile'],
         'symlinks': ['Api.java', 'interface.cc', 'Makefile-java']},
+    'js': {
+        'files': ['champion.js', 'Makefile'],
+        'symlinks': ['api.d.ts', 'interface.cc', 'Makefile-js'],
+    },
     'php': {
         'files': ['champion.php', 'Makefile'],
         'symlinks': ['api.php', 'interface.cc', 'Makefile-php']},

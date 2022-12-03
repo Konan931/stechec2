@@ -410,22 +410,23 @@ GAME_SCHEMA = {
 # Obtained with sorted(set(iorgen.parser_c.KEYWORDS +
 # iorgen.parser_cpp.KEYWORDS + iorgen.parser_csharp.KEYWORDS +
 # iorgen.parser_haskell.KEYWORDS + iorgen.parser_java.KEYWORDS +
-# iorgen.parser_php.KEYWORDS + iorgen.parser_rust.KEYWORDS))
+# iorgen.parser_php.KEYWORDS + iorgen.parser_rust.KEYWORDS +
+# iorgen.parser_javascript.KEYWORDS))
 # Note that python keywords are not present, use keyword.iskeyword
 RESERVED_LANGUAGE_KEYWORDS = [
-    'Self', 'abstract', 'alignas', 'alignof', 'and', 'and_eq', 'array', 'as',
-    'asm', 'assert', 'atomic_cancel', 'atomic_commit', 'atomic_noexcept',
-    'auto', 'base', 'become', 'bitand', 'bitor', 'bool', 'boolean', 'box',
-    'break', 'byte', 'callable', 'case', 'catch', 'char', 'char16_t',
-    'char32_t', 'checked', 'class', 'clone', 'co_await', 'co_return',
-    'co_yield', 'compl', 'concept', 'const', 'const_cast', 'constexpr',
-    'continue', 'crate', 'data', 'decimal', 'declare', 'decltype', 'default',
-    'delegate', 'delete', 'deriving', 'die', 'do', 'double', 'dynamic_cast',
-    'echo', 'else', 'elseif', 'empty', 'enddeclare', 'endfor', 'endforeach',
-    'endif', 'endswitch', 'endwhile', 'enum', 'eval', 'event', 'exit',
-    'explicit', 'export', 'extends', 'extern', 'extern(', 'false', 'final',
-    'finally', 'fixed', 'float', 'fn', 'for', 'forall', 'foreach', 'foreign',
-    'friend', 'function', 'global', 'goto', 'hiding', 'if', 'impl',
+    'Self', 'abstract', 'alignas', 'alignof', 'and', 'and_eq', 'arguments',
+    'array', 'as', 'asm', 'assert', 'atomic_cancel', 'atomic_commit',
+    'atomic_noexcept', 'auto', 'await', 'base', 'become', 'bitand', 'bitor',
+    'bool', 'boolean', 'box', 'break', 'byte', 'callable', 'case', 'catch',
+    'char', 'char16_t', 'char32_t', 'checked', 'class', 'clone', 'co_await',
+    'co_return', 'co_yield', 'compl', 'concept', 'const', 'const_cast',
+    'constexpr', 'continue', 'crate', 'data', 'debugger', 'decimal', 'declare',
+    'decltype', 'default', 'delegate', 'delete', 'deriving', 'die', 'do',
+    'double', 'dynamic_cast', 'echo', 'else', 'elseif', 'empty', 'enddeclare',
+    'endfor', 'endforeach', 'endif', 'endswitch', 'endwhile', 'enum', 'eval',
+    'event', 'exit', 'explicit', 'export', 'extends', 'extern', 'false',
+    'final', 'finally', 'fixed', 'float', 'fn', 'for', 'forall', 'foreach',
+    'foreign', 'friend', 'function', 'global', 'goto', 'hiding', 'if', 'impl',
     'implements', 'implicit', 'import', 'in', 'include', 'include_once',
     'infix', 'infixl', 'infixr', 'inline', 'instance', 'instanceof',
     'insteadof', 'int', 'interface', 'internal', 'is', 'isset', 'let', 'list',
@@ -442,6 +443,6 @@ RESERVED_LANGUAGE_KEYWORDS = [
     'throws', 'trait', 'transient', 'true', 'try', 'type', 'typedef', 'typeid',
     'typename', 'typeof', 'uint', 'ulong', 'unchecked', 'union', 'unsafe',
     'unset', 'unsigned', 'unsized', 'use', 'ushort', 'using', 'using static',
-    'var', 'virtual', 'void', 'volatile', 'wchar_t', 'where', 'while', 'xor',
-    'xor_eq', 'yield'
+    'var', 'virtual', 'void', 'volatile', 'wchar_t', 'where', 'while', 'with',
+    'xor', 'xor_eq', 'yield'
 ]

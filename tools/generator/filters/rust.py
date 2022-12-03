@@ -108,7 +108,7 @@ def rust_tuple_type(ctx, value: str, api_mod_path='') -> str:
     return '({})'.format(
         ', '.join(
             rust_api_output_type(ctx, field, api_mod_path)
-            for _, field, _ in ctx['game'].get_struct(value)['str_field']
+            for _, field, _ in tup['str_field']
         ))
 
 
