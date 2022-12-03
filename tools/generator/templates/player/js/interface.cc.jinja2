@@ -3,6 +3,8 @@
 {% import 'macros/cxx.jinja2' as cxx %}
 
 #include <js/Array.h>
+#include <js/CompilationAndEvaluation.h>
+#include <js/Initialization.h>
 #include <jsapi.h>
 
 #include <string>
@@ -204,3 +206,46 @@ bool js_to_cxx(JSContext* cx, JS::HandleValue in, {{ struct.str_name }}& out) {
 }
 {% endfor %}
 
+static bool initialized = false;
+
+// Call `JS_ShutDown()` to avoid a segfault on exit
+class AutoCleanup {
+public:
+    ~AutoCleanup() {
+        if (initialized)
+            JS_ShutDown();
+    }
+};
+
+static AutoCleanup _cleanup;
+static JSContext* cx;
+static JS::PersistentRootedObject global;
+
+static void init_js() {
+    if (initialized)
+        return;
+    initialized = true;
+
+    if (!JS_Init())
+        throw 42;
+    cx = JS_NewContext(JS::DefaultHeapMaxBytes);
+    if (!JS::InitSelfHostedCode(cx))
+        throw 42;
+
+    static JSClass GlobalClass = {"Stechec", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
+    global = JS::PersistentRootedObject(cx, JS_NewGlobalObject(cx, &GlobalClass, nullptr, JS::FireOnNewGlobalHook, JS::RealmOptions()));
+    JS::EnterRealm(cx, global);
+
+    const char* champion_path = getenv("CHAMPION_PATH");
+    std::string champion;
+
+    if (!champion_path)
+        champion = "champion.js";
+    else {
+        champion = champion_path;
+        champion += "/champion.js";
+    }
+    JS::RootedValue _rval(cx);
+    if (!JS::EvaluateUtf8Path(cx, JS::OwningCompileOptions(cx), champion.c_str(), &_rval))
+        throw 42;
+}
