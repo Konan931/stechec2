@@ -39,6 +39,7 @@ def load_library_in(env):
         cxx,
         haskell,
         java,
+        js,
         php,
         python,
         rust,

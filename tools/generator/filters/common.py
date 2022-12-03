@@ -5,9 +5,12 @@ from . import register_filter, register_test
 
 
 @register_filter
-def camel_case(value: str) -> str:
-    """Convert a snake case identifier to a upper camel case one"""
-    return "".join(i.capitalize() for i in value.split("_"))
+def camel_case(value: str, upper: bool = True) -> str:
+    """Convert a snake case identifier to a camel case one"""
+    words = value.split("_")
+    if not upper:
+        return words[0] + "".join(i.capitalize() for i in words[1:])
+    return "".join(i.capitalize() for i in words)
 
 
 @register_test
