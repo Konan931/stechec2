@@ -34,3 +34,8 @@ def cxx_func_ptr(func) -> str:
 def cxx_comment(*args, doc: bool = False, **kwargs):
     start = "/// " if doc else "// "
     return generic_comment(*args, **kwargs, start=start)
+
+
+@register_filter
+def cxx_call_args(arguments) -> str:
+    return ', '.join(arg_name for arg_name, _, _ in arguments)

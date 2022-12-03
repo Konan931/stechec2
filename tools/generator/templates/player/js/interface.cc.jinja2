@@ -206,6 +206,40 @@ bool js_to_cxx(JSContext* cx, JS::HandleValue in, {{ struct.str_name }}& out) {
 }
 {% endfor %}
 
+{% for func in game.function %}
+bool js_{{ func.fct_name }}(JSContext* cx, unsigned argc, JS::Value* vp) {
+    if (argc != {{ func.fct_arg|length }}) {
+        JS_ReportErrorASCII(cx, "`{{ func.fct_name }}` expected {{ func.fct_arg|length }} arguments, got %d", argc);
+        return false;
+    }
+    JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+    {% for arg_name, arg_type, _ in func.fct_arg %}
+    {{ arg_type|cxx_type }} {{ arg_name }};
+    if (!{{ arg_type|js_to_cxx }}(cx, args[{{ loop.index0 }}], {{ arg_name }})) {
+        JS_ReportErrorASCII(cx, "`{{ func.fct_name }}` got bad {{ loop.index0 }}th argument, expected type `{{ arg_type|ts_type }}`");
+        return false;
+    }
+    {% endfor %}
+
+    {% if func is returning %}
+    {{ func.fct_ret_type|cxx_to_js }}(cx, api_{{ func.fct_name }}({{ func.fct_arg|cxx_call_args }}), args.rval());
+    {% else %}
+    api_{{ func.fct_name }}({{ func.fct_arg|cxx_call_args }});
+    args.rval().setUndefined();
+    {% endif %}
+    return true;
+}
+
+{% endfor %}
+
+static JSFunctionSpec api_functions[] = {
+    {% for func in game.function %}
+    JS_FN("{{ func.fct_name|camel_case(upper=False) }}", js_{{ func.fct_name }}, {{ func.fct_arg|length }}, 0),
+    {% endfor %}
+    JS_FS_END
+};
+
 {% for enum in game.enum %}
 bool define_enum_{{ enum.enum_name }}(JSContext* cx, JS::HandleObject global) {
     JS::RootedObject obj(cx, JS_NewPlainObject(cx));
@@ -260,6 +294,7 @@ static void init_js() {
     global = JS::PersistentRootedObject(cx, JS_NewGlobalObject(cx, &GlobalClass, nullptr, JS::FireOnNewGlobalHook, JS::RealmOptions()));
     JS::EnterRealm(cx, global);
 
+    JS_DefineFunctions(cx, global, api_functions);
     {% for enum in game.enum %}
     define_enum_{{ enum.enum_name }}(cx, global);
     {% endfor %}
