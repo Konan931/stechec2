@@ -221,8 +221,8 @@ bool js_to_cxx(JSContext* cx, JS::HandleValue in, {{ struct.str_name }}& out) {
 {% for func in game.function %}
 bool js_{{ func.fct_name }}(JSContext* cx, unsigned argc, JS::Value* vp) {
     if (argc != {{ func.fct_arg|length }}) {
-        JS_ReportErrorASCII(cx, "`{{ func.fct_name }}` expected "
-                            "{{ func.fct_arg|length }} arguments, "
+        JS_ReportErrorASCII(cx, "`{{ func.fct_name|camel_case(upper=False) }}` "
+                            "expected {{ func.fct_arg|length }} arguments, "
                             "got %d", argc);
         return false;
     }
@@ -231,8 +231,8 @@ bool js_{{ func.fct_name }}(JSContext* cx, unsigned argc, JS::Value* vp) {
     {% for arg_name, arg_type, _ in func.fct_arg %}
     {{ arg_type|cxx_type }} {{ arg_name }};
     if (!{{ arg_type|js_to_cxx }}(cx, args[{{ loop.index0 }}], {{ arg_name }})) {
-        JS_ReportErrorASCII(cx, "`{{ func.fct_name }}` got bad "
-                            "{{ loop.index0 }}th argument, "
+        JS_ReportErrorASCII(cx, "`{{ func.fct_name|camel_case(upper=False) }}` "
+                            "got bad {{ loop.index0 }}th argument, "
                             "expected type `{{ arg_type|ts_type }}`");
         return false;
     }
@@ -427,9 +427,13 @@ extern "C" {{ func|cxx_prototype }} {
     {% if func is returning %}
 
     {{ func.fct_ret_type|cxx_type }} cxx_ret;
-    if (!{{ func.fct_ret_type|js_to_cxx }}(cx, js_ret, cxx_ret))
-        {# FIXME: this needs a better error message #}
-        throw 42;
+    if (!{{ func.fct_ret_type|js_to_cxx }}(cx, js_ret, cxx_ret)) {
+        std::cerr
+            << "`{{ func.fct_name|camel_case(upper=False) }}` returned bad "
+               "value, expected type `{{ func.fct_ret_type|ts_type }}`"
+            << std::endl;
+        mozalloc_abort("");
+    }
     return cxx_ret;
     {% endif %}
 }
