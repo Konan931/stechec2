@@ -286,7 +286,7 @@ void define_const_{{ constant.cst_name|lower }}(JSContext* cx,
 {% endfor %}
 
 bool js_console_log_inner(JSContext* cx, unsigned argc, JS::Value* vp, 
-                          FILE* file) {
+                          std::ostream& out) {
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
     for (unsigned i = 0; i < argc; i++) {
         JS::RootedString js_str(cx, JS::ToString(cx, args[i]));
@@ -296,20 +296,20 @@ bool js_console_log_inner(JSContext* cx, unsigned argc, JS::Value* vp,
         }
         std::string str;
         if (!js_encode_string(cx, js_str, str))
-            fprintf(file, "??? ");
+            out << "??? ";
         else
-            fprintf(file, "%s ", str.c_str());
+            out << str << " ";
     }
-    fprintf(file, "\n");
+    out << std::endl;
     return true;
 }
 
 bool js_console_log(JSContext* cx, unsigned argc, JS::Value* vp) {
-    return js_console_log_inner(cx, argc, vp, stdout);
+    return js_console_log_inner(cx, argc, vp, std::cout);
 }
 
 bool js_console_error(JSContext* cx, unsigned argc, JS::Value* vp) {
-    return js_console_log_inner(cx, argc, vp, stderr);
+    return js_console_log_inner(cx, argc, vp, std::cerr);
 }
 
 void define_js_console(JSContext* cx, JS::HandleObject global) {
