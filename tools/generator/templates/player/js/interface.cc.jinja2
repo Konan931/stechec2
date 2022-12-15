@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Copyright (c) 2020 Association Prologin <association@prologin.org>
+// Copyright (c) 2022 Association Prologin <association@prologin.org>
 {% import 'macros/cxx.jinja2' as cxx %}
 
 #include <js/Array.h>
@@ -110,7 +110,8 @@ bool js_to_cxx(JSContext* cx, JS::HandleValue in, bool& out) {
 }
 
 template <typename CxxType>
-void cxx_to_js_array(JSContext* cx, const std::vector<CxxType>& in, JS::MutableHandleValue out) {
+void cxx_to_js_array(JSContext* cx, const std::vector<CxxType>& in, 
+                     JS::MutableHandleValue out) {
     JS::RootedValueVector v(cx);
     if (!v.resize(in.size())) {
         JS_ReportOutOfMemory(cx);
@@ -122,7 +123,8 @@ void cxx_to_js_array(JSContext* cx, const std::vector<CxxType>& in, JS::MutableH
 }
 
 template <typename CxxType>
-bool js_to_cxx_array(JSContext* cx, JS::HandleValue in, std::vector<CxxType>& out) {
+bool js_to_cxx_array(JSContext* cx, JS::HandleValue in, 
+                     std::vector<CxxType>& out) {
     bool is_array;
     if (!JS::IsArrayObject(cx, in, &is_array) || !is_array)
         return false;
@@ -137,8 +139,10 @@ bool js_to_cxx_array(JSContext* cx, JS::HandleValue in, std::vector<CxxType>& ou
     for (uint32_t i = 0; i < len; i++) {
         JS::RootedValue jsval(cx);
         CxxType cxxval;
-        if (!JS_GetElement(cx, arr, i, &jsval) || !js_to_cxx<CxxType>(cx, jsval, (CxxType&)cxxval))
+        if (!JS_GetElement(cx, arr, i, &jsval) ||
+            !js_to_cxx<CxxType>(cx, jsval, (CxxType&)cxxval)) {
             return false;
+        }
         out.push_back(cxxval);
     }
     return true;
@@ -159,7 +163,8 @@ bool js_to_cxx(JSContext* cx, JS::HandleValue in, {{ enum.enum_name }}& out) {
 
 {% for struct in game.struct %}
 template<>
-void cxx_to_js(JSContext* cx, {{ struct.str_name }} in, JS::MutableHandleValue out) {
+void cxx_to_js(JSContext* cx, {{ struct.str_name }} in,
+               JS::MutableHandleValue out) {
     JS::RootedValueVector v(cx);
     if (!v.resize({{ struct.str_field|length }})) {
         JS_ReportOutOfMemory(cx);
@@ -174,7 +179,8 @@ void cxx_to_js(JSContext* cx, {{ struct.str_name }} in, JS::MutableHandleValue o
     {% else %}
     JS::RootedObject obj(cx, JS_NewPlainObject(cx));
     {% for field_name, _, _ in struct.str_field %}
-    JS_SetProperty(cx, obj, "{{ field_name|camel_case(upper=False) }}", v[{{ loop.index0 }}]);
+    JS_SetProperty(cx, obj, "{{ field_name|camel_case(upper=False) }}",
+                   v[{{ loop.index0 }}]);
     {% endfor %}
     out.setObject(*obj);
     {% endif %}
@@ -189,8 +195,10 @@ bool js_to_cxx(JSContext* cx, JS::HandleValue in, {{ struct.str_name }}& out) {
     bool is_array;
     uint32_t len;
     if (!JS::IsArray(cx, obj, &is_array) || !is_array ||
-        !JS::GetArrayLength(cx, obj, &len) || len != {{ struct.str_field|length }})
+        !JS::GetArrayLength(cx, obj, &len) ||
+        len != {{ struct.str_field|length }}) {
         return false;
+    }
     {% endif %}
     
     {% for field_name, _, _ in struct.str_field %}
@@ -213,7 +221,9 @@ bool js_to_cxx(JSContext* cx, JS::HandleValue in, {{ struct.str_name }}& out) {
 {% for func in game.function %}
 bool js_{{ func.fct_name }}(JSContext* cx, unsigned argc, JS::Value* vp) {
     if (argc != {{ func.fct_arg|length }}) {
-        JS_ReportErrorASCII(cx, "`{{ func.fct_name }}` expected {{ func.fct_arg|length }} arguments, got %d", argc);
+        JS_ReportErrorASCII(cx, "`{{ func.fct_name }}` expected "
+                            "{{ func.fct_arg|length }} arguments, "
+                            "got %d", argc);
         return false;
     }
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
@@ -221,13 +231,18 @@ bool js_{{ func.fct_name }}(JSContext* cx, unsigned argc, JS::Value* vp) {
     {% for arg_name, arg_type, _ in func.fct_arg %}
     {{ arg_type|cxx_type }} {{ arg_name }};
     if (!{{ arg_type|js_to_cxx }}(cx, args[{{ loop.index0 }}], {{ arg_name }})) {
-        JS_ReportErrorASCII(cx, "`{{ func.fct_name }}` got bad {{ loop.index0 }}th argument, expected type `{{ arg_type|ts_type }}`");
+        JS_ReportErrorASCII(cx, "`{{ func.fct_name }}` got bad "
+                            "{{ loop.index0 }}th argument, "
+                            "expected type `{{ arg_type|ts_type }}`");
         return false;
     }
     {% endfor %}
 
     {% if func is returning %}
-    {{ func.fct_ret_type|cxx_to_js }}(cx, api_{{ func.fct_name }}({{ func.fct_arg|cxx_call_args }}), args.rval());
+    {{ func.fct_ret_type|cxx_to_js }}(
+        cx,
+        api_{{ func.fct_name }}({{ func.fct_arg|cxx_call_args }}),
+        args.rval());
     {% else %}
     api_{{ func.fct_name }}({{ func.fct_arg|cxx_call_args }});
     args.rval().setUndefined();
@@ -239,7 +254,8 @@ bool js_{{ func.fct_name }}(JSContext* cx, unsigned argc, JS::Value* vp) {
 
 static JSFunctionSpec api_functions[] = {
     {% for func in game.function %}
-    JS_FN("{{ func.fct_name|camel_case(upper=False) }}", js_{{ func.fct_name }}, {{ func.fct_arg|length }}, 0),
+    JS_FN("{{ func.fct_name|camel_case(upper=False) }}", 
+          js_{{ func.fct_name }}, {{ func.fct_arg|length }}, 0),
     {% endfor %}
     JS_FS_END
 };
@@ -261,14 +277,16 @@ bool define_enum_{{ enum.enum_name }}(JSContext* cx, JS::HandleObject global) {
 
 {% endfor %}
 {% for constant in game.constant %}
-void define_const_{{ constant.cst_name|lower }}(JSContext* cx, JS::HandleObject global) {
+void define_const_{{ constant.cst_name|lower }}(JSContext* cx,
+                                                JS::HandleObject global) {
     JS::RootedValue val(cx, {{ constant|js_const_val }});
     JS_SetProperty(cx, global, "{{ constant.cst_name }}", val);
 }
 
 {% endfor %}
 
-bool js_console_log_inner(JSContext* cx, unsigned argc, JS::Value* vp, FILE* file) {
+bool js_console_log_inner(JSContext* cx, unsigned argc, JS::Value* vp, 
+                          FILE* file) {
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
     for (unsigned i = 0; i < argc; i++) {
         JS::RootedString js_str(cx, JS::ToString(cx, args[i]));
@@ -329,7 +347,9 @@ static void init_js() {
         throw 42;
 
     static JSClass GlobalClass = {"Stechec", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
-    global = JS::PersistentRootedObject(cx, JS_NewGlobalObject(cx, &GlobalClass, nullptr, JS::FireOnNewGlobalHook, JS::RealmOptions()));
+    global = JS::PersistentRootedObject(
+        cx, JS_NewGlobalObject(cx, &GlobalClass, nullptr,
+                               JS::FireOnNewGlobalHook, JS::RealmOptions()));
     JS::EnterRealm(cx, global);
 
     define_js_console(cx, global);
@@ -353,8 +373,10 @@ static void init_js() {
         champion += "/champion.js";
     }
     JS::RootedValue _rval(cx);
-    if (!JS::EvaluateUtf8Path(cx, JS::OwningCompileOptions(cx), champion.c_str(), &_rval))
+    if (!JS::EvaluateUtf8Path(cx, JS::OwningCompileOptions(cx), 
+                              champion.c_str(), &_rval)) {
         throw 42;
+    }
 }
 
 static void js_report_error() {
@@ -371,7 +393,8 @@ static void js_report_error() {
     JS::PrintError(stderr, report, true);
 
     JS::RootedString js_bt(cx);
-    if (!stack.stack() || !JS::BuildStackString(cx, nullptr, stack.stack(), &js_bt, 2)) {
+    if (!stack.stack() || 
+        !JS::BuildStackString(cx, nullptr, stack.stack(), &js_bt, 2)) {
         std::cerr << "(no stack trace available)" << std::endl;
         return;
     }
@@ -396,7 +419,8 @@ extern "C" {{ func|cxx_prototype }} {
     JS::HandleValueArray args = JS::HandleValueArray::empty();
     {% endif %}
 
-    if (!JS_CallFunctionName(cx, global, "{{ func.fct_name|camel_case(upper=False) }}", args, &js_ret)) {
+    if (!JS_CallFunctionName(cx, global, 
+        "{{ func.fct_name|camel_case(upper=False) }}", args, &js_ret)) {
         js_report_error();
         mozalloc_abort("");
     }

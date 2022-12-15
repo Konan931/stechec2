@@ -1,5 +1,5 @@
 function assert(cond) {
-    if (cond != true) throw new Error();
+    if (cond !== true) throw new Error();
 }
 
 function range(m, n) {
@@ -24,7 +24,7 @@ function deepEqual(a, b) {
         }
         return true;
     }
-    else return a === b;
+    return a === b;
 }
 
 function testAlert() {
