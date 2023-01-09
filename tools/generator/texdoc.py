@@ -1,12 +1,12 @@
 from pathlib import Path
+from markupsafe import Markup
 
-import jinja2
 from .generator import Generator
 
 
 def tex_escape(s):
     """Escape common problematic characters in TeX code like _, &."""
-    if isinstance(s, jinja2.Markup):
+    if isinstance(s, Markup):
         return s
     if not isinstance(s, str):
         return s
@@ -27,7 +27,7 @@ def tex_escape(s):
         '\\': r'\textbackslash{}',
     }
     s = s.translate(str.maketrans(tex_replacements))
-    return jinja2.Markup(s)
+    return Markup(s)
 
 
 def make_texdoc(game, out_dir: Path) -> None:
