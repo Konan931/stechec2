@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (c) 2022 Association Prologin <association@prologin.org>
+# Copyright (c) 2022 Léo Lanteri Thauvin
+
 from typing import List
 
 from . import register_filter
