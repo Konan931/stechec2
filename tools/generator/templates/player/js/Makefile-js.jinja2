@@ -6,6 +6,6 @@
 {% block lang %}javascript{% endblock %}
 
 {% block extra_flags %}
-CXXFLAGS += $(shell js91-config --cflags)
-LDFLAGS += $(shell js91-config --libs)
+CXXFLAGS += $(shell pkg-config --cflags mozjs-128)
+LDFLAGS += $(shell pkg-config --libs mozjs-128)
 {% endblock %}

@@ -22,7 +22,7 @@ void ClientSocket::init()
     {
         pubsub_sckt_ = std::make_unique<zmq::socket_t>(ctx_, ZMQ_SUB);
         pubsub_sckt_->connect(pubsub_addr_.c_str());
-        pubsub_sckt_->setsockopt(ZMQ_SUBSCRIBE, nullptr, 0);
+        pubsub_sckt_->set(zmq::sockopt::subscribe, zmq::const_buffer{});
     }
     catch (const zmq::error_t& e)
     {
@@ -63,7 +63,7 @@ void ClientSocket::close()
     }
 }
 
-std::unique_ptr<utils::Buffer> ClientSocket::pull(int flags)
+std::unique_ptr<utils::Buffer> ClientSocket::pull(zmq::recv_flags flags)
 {
     return recv_sckt(pubsub_sckt_.get(), flags);
 }

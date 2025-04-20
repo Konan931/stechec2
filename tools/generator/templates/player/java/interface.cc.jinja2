@@ -321,7 +321,7 @@ void StechecJavaRunTime::init()
     options[1].optionString = (char*) "-ea";
     options[2].optionString = (char*) "-XX:MaxHeapSize=512m";
     options[3].optionString = (char*) "-XX:CompressedClassSpaceSize=64m";
-    vm_args.version = JNI_VERSION_1_6;
+    vm_args.version = JNI_VERSION_21;
     vm_args.nOptions = 4;
     vm_args.options = options;
     vm_args.ignoreUnrecognized = false;
@@ -332,7 +332,7 @@ void StechecJavaRunTime::init()
 
 bool StechecJavaRunTime::function_enter()
 {
-    if (jvm->GetEnv((void**)&env, JNI_VERSION_1_6) == JNI_OK)
+    if (jvm->GetEnv((void**)&env, JNI_VERSION_21) == JNI_OK)
         return false;
     jvm->AttachCurrentThread((void**)&env, NULL);
     return true;

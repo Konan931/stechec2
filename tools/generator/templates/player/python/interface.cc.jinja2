@@ -6,12 +6,35 @@
 // language.
 // {{ stechec2_generated }}
 
-#include <Python.h>
 #include <vector>
 #include <string>
+#include <iostream>
+
+#include <Python.h>
 
 static PyObject* py_module;
 static PyObject* champ_module;
+
+// This variable must be used only on the main thread!
+static PyThreadState *save;
+
+class LockGIL
+{
+    public:
+    LockGIL() : gstate_(PyGILState_Ensure())
+    {}
+
+    ~LockGIL()
+    {
+        PyGILState_Release(gstate_);
+    }
+
+    LockGIL(const LockGIL&) = delete;
+    LockGIL& operator=(const LockGIL&) = delete;
+
+private:
+    PyGILState_STATE gstate_;
+};
 
 {% for enum in game.enum %}
 
@@ -285,11 +308,10 @@ static PyObject* _import_module(const char* m)
 }
 
 // Initialize Python VM, register API functions, and load .py file.
-static void _init_python()
+// The attribute constructor ensure that is called on the main thread. 
+// (I hope...)
+static void __attribute__ ((constructor)) _init_python()
 {
-    static wchar_t empty_string[] = L"";
-    static wchar_t *argv[] = { (wchar_t *) &empty_string, nullptr };
-
     const char* champion_path;
 
     champion_path = getenv("CHAMPION_PATH");
@@ -298,17 +320,49 @@ static void _init_python()
 
     setenv("PYTHONPATH", champion_path, 1);
 
-    static wchar_t program_name[] = L"stechec";
-    Py_SetProgramName(program_name);
+    PyStatus status;
+    PyConfig config;
+    PyConfig_InitPythonConfig(&config);
+
+    status = PyConfig_SetString(&config, &config.program_name, L"stechec");
+
+    if (PyStatus_Exception(status) != 0) {
+        std::cerr << "Error During the configuration of Python" << std::endl;
+        abort();
+    }
+
+    wchar_t empty_string[] = L"";
+    wchar_t *argv[] = { (wchar_t *) &empty_string, nullptr };
+
+    status = PyConfig_SetArgv(&config, 1, argv);
+    if (PyStatus_Exception(status) != 0) {
+        std::cerr << "Error During the configuration of Python" << std::endl;
+        abort();
+    }
 
     PyImport_AppendInittab("_api", PyInit__api);
-    Py_Initialize();
-    PySys_SetArgvEx(1, argv, 0);
+    status = Py_InitializeFromConfig(&config);
+    if (PyStatus_Exception(status) != 0) {
+        std::cerr << "Error During the configuration of Python" << std::endl;
+        abort();
+    }
 
-    // Import a Champion module with an uppercase letter to avoid conflict with
-    // champion.so
-    champ_module = _import_module("Champion");
-    py_module = _import_module("api");
+    {
+        LockGIL lock_gil;
+        // Import a Champion module with an uppercase letter to avoid conflict with
+        // champion.so
+        champ_module = _import_module("Champion");
+        py_module = _import_module("api");
+    }
+    
+    // Now, CPython is initialized.
+    // Let Stechec2 do its thing...
+    save = PyEval_SaveThread();
+}
+
+static void __attribute__ ((destructor)) _deinit_python() {
+    PyEval_RestoreThread(save);
+    Py_Finalize();
 }
 
 // Flush stdout and stderr
@@ -338,14 +392,6 @@ static void flush_std_files()
 // Run a Python function.
 static PyObject* _call_python_function(const char* name)
 {
-    static bool initialized = false;
-
-    if (!initialized)
-    {
-        initialized = true;
-        _init_python();
-    }
-
     PyObject *arglist, *func;
     PyObject *result = nullptr;
 
@@ -353,7 +399,7 @@ static PyObject* _call_python_function(const char* name)
     if (func && PyCallable_Check(func))
     {
         arglist = Py_BuildValue("()");
-        result = PyEval_CallObject(func, arglist);
+        result = PyObject_CallObject(func, arglist);
         Py_XDECREF(arglist);
         Py_DECREF(func);
     }
@@ -373,6 +419,7 @@ static PyObject* _call_python_function(const char* name)
 
 extern "C" {{ func|cxx_prototype }}
 {
+    LockGIL lock_gil;
     PyObject* _retval = _call_python_function("{{ func.fct_name }}");
     try {
         {% if func is returning %}

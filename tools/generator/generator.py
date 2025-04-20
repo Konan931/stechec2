@@ -37,7 +37,8 @@ class Generator:
             out_path.unlink()  # remove symlink leftovers
         except FileNotFoundError:
             pass
-        out.dump(out_path.open('w'))
+        with out_path.open('w') as out_file:
+            out.dump(out_file)
 
     def register_filters(self):
         load_library_in(self.env)

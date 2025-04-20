@@ -80,18 +80,19 @@ void log(Logger::DisplayLevel lvl, const char* file, int line,
          const char* module_name, const char* module_color, const char* fmt,
          ...);
 
-#define LOG(lvl, args...)                                                      \
-    utils::log(lvl, __FILE__, __LINE__, MODULE_NAME, MODULE_COLOR, ##args)
-#define ERR(args...) LOG(utils::Logger::ERROR_LEVEL, ##args)
-#define WARN(args...) LOG(utils::Logger::WARNING_LEVEL, ##args)
-#define INFO(args...) LOG(utils::Logger::INFO_LEVEL, ##args)
-#define NOTICE(args...) LOG(utils::Logger::NOTICE_LEVEL, ##args)
-#define DEBUG(args...) LOG(utils::Logger::DEBUG_LEVEL, ##args)
+#define LOG(lvl, ...)                                                      \
+    utils::log(lvl, __FILE__, __LINE__, MODULE_NAME, MODULE_COLOR,         \
+            ## __VA_ARGS__)
+#define ERR(...) LOG(utils::Logger::ERROR_LEVEL, ## __VA_ARGS__)
+#define WARN(...) LOG(utils::Logger::WARNING_LEVEL, ## __VA_ARGS__)
+#define INFO(...) LOG(utils::Logger::INFO_LEVEL, ## __VA_ARGS__)
+#define NOTICE(...) LOG(utils::Logger::NOTICE_LEVEL, ## __VA_ARGS__)
+#define DEBUG(...) LOG(utils::Logger::DEBUG_LEVEL, ## __VA_ARGS__)
 
-#define FATAL(args...)                                                         \
+#define FATAL(...)                                                             \
     do                                                                         \
     {                                                                          \
-        LOG(utils::Logger::FATAL_LEVEL, ##args);                               \
+        LOG(utils::Logger::FATAL_LEVEL, ## __VA_ARGS__);                       \
         abort();                                                               \
     } while (0)
 

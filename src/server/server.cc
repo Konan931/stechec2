@@ -164,10 +164,15 @@ void Server::wait_for_clients()
         }
 
         int32_t player_id = id_req.client_id;
-        uint32_t client_type;
+        int32_t client_type = -1;
         buf_req->handle(client_type);
 
-        rules::PlayerType player_type =
+        if (client_type == -1) {
+            ERR("The Client type is unknow");
+            continue;
+        }
+
+        const auto player_type =
             static_cast<rules::PlayerType>(client_type);
 
         if (player_id == -1)
@@ -245,7 +250,7 @@ void Server::wait_for_clients()
     msg_players.handle_buffer(buf_players);
     players_.handle_buffer(buf_players);
 
-    sckt_->push(buf_players, 0, 500);
+    sckt_->push(buf_players, zmq::send_flags::none, 500);
 
     // And spectators
     utils::Buffer buf_spectators;

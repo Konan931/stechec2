@@ -49,8 +49,8 @@ Ubuntu::
 
 
 
-Installation
-------------
+Installation with Waf
+---------------------
 
 Let's assume you want to install stechec2 with all the Prologin games, and then
 use it as a player.
@@ -79,6 +79,47 @@ Then build and install it::
 
 **Archlinux**: A PKGBUILD is available in ``pkg/stechec2``:
 run ``makepkg && pacman -U stechec2-*.pkg.tar.xz``.
+
+Installation with CMake
+=======================
+
+The goal of installing Stechec2 with CMake is to deploy its libraries and binaries on the system (excluding the tools).  
+Only games that support the CMake build system use this method.
+
+Clone the Stechec2 repository::
+
+  git clone https://github.com/prologin/stechec2
+  cd stechec2
+
+Build Stechec2::
+
+  cmake -S . -B build_release -DCMAKE_BUILD_TYPE="Release" -DBUILD_TESTING=OFF -DBUILD_GAMES=OFF
+  cmake --build build_release
+  cmake --install build_release
+
+Stechec2 is now installed on the system.
+
+Contributing with CMake
+=======================
+
+The steps are quite similar to those in *Installation with CMake*.
+
+Build Stechec2::
+
+  cmake -S . -B build -DCMAKE_BUILD_TYPE="Debug" -DBUILD_TESTING=ON -DBUILD_GAMES=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=YES
+  cd build && make -j$(nproc)
+
+To enable Clang sanitizers, add these flags::
+
+  -DCMAKE_CXX_FLAGS="-fsanitize=address" -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address"
+
+Run tests::
+
+  cd build
+  ctest --output-on-failure .
+
+To use `GDB <https://www.gnu.org/savannah-checkouts/gnu/gdb/index.html>`_ (or other cool tools like `rr <https://rr-project.org/>`_),
+you don't need to use ``ctest``. Instead, run the test binaries directly from the build folder.
 
 Generate the player environment
 ---------------------------------
@@ -168,3 +209,14 @@ Then you just have to add those lines to the ``config.yml``::
 
   spectators:
    - /path/to/prologin2014/gui/gui.so
+
+Testing The environment
+-----------------------
+
+Ensuring the environment is properly set up is crucial for the tools to function correctly.
+
+A first test to check if the environment is properly set up is to compile all the champions.
+The tests of stechec2-generator do this effectively.::
+
+  cd ./tools
+  python3 -m unittest discover -s ./generator/test

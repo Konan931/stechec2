@@ -7,13 +7,17 @@
 // {{ stechec2_generated }}
 
 #define CAML_NAME_SPACE
-#include <caml/mlvalues.h>
-#include <caml/callback.h>
-#include <caml/alloc.h>
-#include <caml/memory.h>
 
-#include <vector>
+#include <caml/alloc.h>
+#include <caml/callback.h>
+#include <caml/memory.h>
+#include <caml/mlvalues.h>
+#include <caml/threads.h>
+#include <caml/unixsupport.h>
+
 #include <string>
+#include <thread>
+#include <vector>
 
 {% for enum in game.enum %}
 
@@ -215,20 +219,36 @@ template<>
 }
 {% endfor %}
 
+const static std::thread::id MAIN_THREAD_ID = std::this_thread::get_id();
+
+class OCamlRuntimeGuard {
+public:
+    OCamlRuntimeGuard() {
+        if (std::this_thread::get_id() != MAIN_THREAD_ID) {
+            caml_c_thread_register();
+        }
+        caml_acquire_runtime_system();
+    }
+
+    ~OCamlRuntimeGuard() {
+        caml_release_runtime_system();
+        if (std::this_thread::get_id() != MAIN_THREAD_ID) {
+            caml_c_thread_unregister();
+        }
+
+    }
+};
+
 /*
 ** Inititialize caml
 */
-static inline void _init_caml()
-{
-    static bool is_initialized = false;
-    if (!is_initialized)
-    {
-        is_initialized = true;
-        char program_name[] = "./caml";
-        char* argv[2] = {program_name, NULL};
-        caml_startup(argv);
-    }
+static void __attribute__ ((constructor)) init_caml() {
+    char program_name[] = "./caml";
+    char* argv[2] = {program_name, nullptr};
+    caml_startup(argv);
+    caml_release_runtime_system();
 }
+
 {% for func in game.function %}
 {%- set arg_list = func.fct_arg|caml_cxx_args %}
 
@@ -279,7 +299,7 @@ extern "C" CAMLprim value ml_bytecode_{{ func.fct_name }}(value* argv, int argc)
 {{ func.fct_summary|cxx_comment }}
 extern "C" {{ func|cxx_prototype }}
 {
-    _init_caml();
+    OCamlRuntimeGuard guard;
     CAMLparam0();
     CAMLlocal1(_ret);
 

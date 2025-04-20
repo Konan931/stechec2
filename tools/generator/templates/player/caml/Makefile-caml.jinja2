@@ -5,10 +5,11 @@
 {% block extra_flags %}
 OCAMLOPT ?= ocamlopt
 OCAML_PATH = $(shell $(OCAMLOPT) -where)
-OCAML_FLAGS = -g -no-unboxed-types
+OCAML_FLAGS = -I +unix -I +threads -g -no-unboxed-types unix.cmxa threads.cmxa -cclib -ldl
 
 CXXFLAGS += -I$(OCAML_PATH)
-LDFLAGS += -L$(OCAML_PATH) -Wl,-R$(OCAML_PATH) -lasmrun_shared -lcurses -lm
+LDFLAGS += -L$(OCAML_PATH) -Wl,-R$(OCAML_PATH) -L$(OCAML_PATH)/stublibs -Wl,-R$(OCAML_PATH)/stublibs -lasmrun_shared -lncurses -lm -l:dllunixnat.so -l:dllthreads.so
+
 {% endblock %}
 
 {% block extra_rules %}

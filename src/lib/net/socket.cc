@@ -4,6 +4,8 @@
 
 #include <stdexcept>
 
+#include <zmq.hpp>
+
 #include <net/message.hh>
 #include <utils/log.hh>
 
@@ -28,17 +30,17 @@ void Socket::shared_init()
     int timeout = FLAGS_socket_timeout;
     if (timeout != -1)
     {
-        pubsub_sckt_->setsockopt(ZMQ_RCVTIMEO, &timeout, sizeof(timeout));
-        reqrep_sckt_->setsockopt(ZMQ_RCVTIMEO, &timeout, sizeof(timeout));
+        pubsub_sckt_->set(zmq::sockopt::rcvtimeo, timeout);
+        reqrep_sckt_->set(zmq::sockopt::rcvtimeo, timeout);
     }
 }
 
-bool Socket::send(const utils::Buffer& msg, int flags)
+bool Socket::send(const utils::Buffer& msg, zmq::send_flags flags)
 {
     return send_sckt(msg, reqrep_sckt_.get(), flags);
 }
 
-std::unique_ptr<utils::Buffer> Socket::recv(int flags)
+std::unique_ptr<utils::Buffer> Socket::recv(zmq::recv_flags flags)
 {
     return recv_sckt(reqrep_sckt_.get(), flags);
 }
@@ -49,17 +51,18 @@ bool Socket::poll(long timeout)
     pollitem.socket = static_cast<void*>(*reqrep_sckt_);
     pollitem.events = ZMQ_POLLIN;
 
-    return zmq::poll(&pollitem, 1, timeout) > 0;
+    return zmq::poll(&pollitem, 1, std::chrono::milliseconds{ timeout }) > 0;
 }
 
-bool Socket::send_sckt(const utils::Buffer& buf, zmq::socket_t* sckt, int flags)
+bool Socket::send_sckt(const utils::Buffer& buf, zmq::socket_t* sckt, zmq::send_flags flags)
 {
     try
     {
         while (true)
             try
             {
-                if (!sckt->send(buf.data(), buf.size(), flags))
+                zmq::const_buffer const_buf(buf.data(), buf.size());
+                if (!sckt->send(const_buf, flags))
                     throw std::runtime_error("Could not send message");
                 break;
             }
@@ -78,7 +81,7 @@ bool Socket::send_sckt(const utils::Buffer& buf, zmq::socket_t* sckt, int flags)
     }
 }
 
-std::unique_ptr<utils::Buffer> Socket::recv_sckt(zmq::socket_t* sckt, int flags)
+std::unique_ptr<utils::Buffer> Socket::recv_sckt(zmq::socket_t* sckt, zmq::recv_flags flags)
 {
     try
     {
@@ -86,7 +89,7 @@ std::unique_ptr<utils::Buffer> Socket::recv_sckt(zmq::socket_t* sckt, int flags)
         while (true)
             try
             {
-                if (!sckt->recv(&zmsg, flags))
+                if (!sckt->recv(zmsg, flags))
                     throw std::runtime_error("Could not get message");
                 break;
             }

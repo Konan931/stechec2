@@ -10,10 +10,10 @@ GHC ?= ghc
 HSC2HS ?= hsc2hs
 
 GHC_FLAGS = -pgml $(CXX) -O9 -dynamic --make -shared -fPIC \
-			-L$(shell $(GHC) --print-libdir) \
-			-lHSrts-ghc$(shell $(GHC) --numeric-version)
+			$(shell ghc-pkg field rts dynamic-library-dirs --simple-output | sed 's/\([^ ]\+\)/-L\1/g') \
+			-l$(shell ghc-pkg field rts hs-libraries --simple-output)-ghc$(shell $(GHC) --numeric-version)
 
-CPPFLAGS += -I$(shell $(GHC) --print-libdir)/include
+CPPFLAGS += $(shell ghc-pkg field rts include-dirs --simple-output | sed 's/\([^ ]\+\)/-I\1/g')
 {% endblock %}
 
 {% block extra_rules %}

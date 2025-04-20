@@ -8,11 +8,16 @@
 #include <js/Conversions.h>
 #include <js/ErrorReport.h>
 #include <js/Initialization.h>
+#include <js/SourceText.h>
 #include <jsapi.h>
+#include <mozilla/Utf8.h>
 #include <mozilla/mozalloc_abort.h>
 
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <thread>
 #include <vector>
 
 {% for enum in game.enum %}
@@ -321,121 +326,195 @@ void define_js_console(JSContext* cx, JS::HandleObject global) {
     JS_SetProperty(cx, global, "console", console_val);
 }
 
-static bool initialized = false;
+struct StechecCurrentThreadContext {
+    JS::PersistentRootedObject global;
+    JS::Realm *realm;
+    JSContext *current_thread_context;
 
-// Call `JS_ShutDown()` to avoid a segfault on exit
-class AutoCleanup {
-public:
-    ~AutoCleanup() {
-        if (initialized)
-            JS_ShutDown();
-    }
+    StechecCurrentThreadContext(const StechecCurrentThreadContext&) = delete;
+    StechecCurrentThreadContext(StechecCurrentThreadContext&&)  noexcept = default;
+    StechecCurrentThreadContext() = default;
 };
 
-static AutoCleanup _cleanup;
 static JSContext* cx;
-static JS::PersistentRootedObject global;
 
-static void init_js() {
-    if (initialized)
-        return;
-    initialized = true;
+static thread_local StechecCurrentThreadContext current_thread_context;
 
+const std::thread::id MAIN_THREAD_ID = std::this_thread::get_id();
+
+static StechecCurrentThreadContext main_current_thread_context;
+static bool main_thread_initialized = false;
+
+static std::string champion_data;
+
+static __attribute__((constructor)) void init_js() {
     if (!JS_Init())
         throw 42;
+
     cx = JS_NewContext(JS::DefaultHeapMaxBytes);
+
     if (!JS::InitSelfHostedCode(cx))
         throw 42;
-
-    static JSClass GlobalClass = {"Stechec", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
-    global = JS::PersistentRootedObject(
-        cx, JS_NewGlobalObject(cx, &GlobalClass, nullptr,
-                               JS::FireOnNewGlobalHook, JS::RealmOptions()));
-    JS::EnterRealm(cx, global);
-
-    define_js_console(cx, global);
-    JS_DefineFunctions(cx, global, api_functions);
-    {% for enum in game.enum %}
-    define_enum_{{ enum.enum_name }}(cx, global);
-    {% endfor %}
-    {% for constant in game.constant %}
-    define_const_{{ constant.cst_name|lower }}(cx, global);
-    {% endfor %}
-    if (JS_IsExceptionPending(cx))
-        throw 42;
-
-    const char* champion_path = getenv("CHAMPION_PATH");
-    std::string champion;
-
-    if (!champion_path)
-        champion = "champion.js";
-    else {
-        champion = champion_path;
-        champion += "/champion.js";
-    }
-    JS::RootedValue _rval(cx);
-    if (!JS::EvaluateUtf8Path(cx, JS::OwningCompileOptions(cx), 
-                              champion.c_str(), &_rval)) {
-        throw 42;
-    }
 }
 
-static void js_report_error() {
-    if (!JS_IsExceptionPending(cx))
-        return;
-    JS::RootedValue exc(cx);
-    JS::ExceptionStack stack(cx);
-    JS_GetPendingException(cx, &exc);
-    JS::GetPendingExceptionStack(cx, &stack);
-    JS_ClearPendingException(cx);
+static __attribute__((destructor)) void deinit_js() {
+    JS::LeaveRealm(cx, main_current_thread_context.realm);
+    JS_DestroyContext(cx);
+    JS_ShutDown();
+}
 
-    JS::ErrorReportBuilder report(cx);
-    report.init(cx, stack, JS::ErrorReportBuilder::WithSideEffects);
+static void js_report_error(JSContext * current_thread_context) {
+    if (!JS_IsExceptionPending(current_thread_context))
+        return;
+    JS::RootedValue exc(current_thread_context);
+    JS::ExceptionStack stack(current_thread_context);
+    JS_GetPendingException(current_thread_context, &exc);
+    JS::GetPendingExceptionStack(current_thread_context, &stack);
+    JS_ClearPendingException(current_thread_context);
+
+    JS::ErrorReportBuilder report(current_thread_context);
+    report.init(current_thread_context, stack, JS::ErrorReportBuilder::WithSideEffects);
     JS::PrintError(stderr, report, true);
 
-    JS::RootedString js_bt(cx);
+    JS::RootedString js_bt(current_thread_context);
     if (!stack.stack() || 
-        !JS::BuildStackString(cx, nullptr, stack.stack(), &js_bt, 2)) {
+            !JS::BuildStackString(current_thread_context, nullptr, stack.stack(), &js_bt, 2)) {
         std::cerr << "(no stack trace available)" << std::endl;
         return;
     }
     std::string bt;
-    js_encode_string(cx, js_bt, bt);
+    js_encode_string(current_thread_context, js_bt, bt);
     std::cerr << bt;
+}
+
+static void read_champion() {
+    const char* champion_path = getenv("CHAMPION_PATH");
+    std::string champion;
+
+    if (champion_path == nullptr) {
+        champion = "champion.js";
+    } else {
+        champion = champion_path;
+        champion += "/champion.js";
+    }
+
+    std::ifstream stream_file(champion);
+    std::stringstream sstr;
+    sstr << stream_file.rdbuf();
+    champion_data = sstr.str();
+}
+
+static void setup_js_champion(JSContext *current_context, StechecCurrentThreadContext &context) {
+    static JSClass GlobalClass = {"Stechec", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
+
+    context.global.init(current_context,JS_NewGlobalObject(current_context, &GlobalClass, nullptr,
+                JS::FireOnNewGlobalHook, JS::RealmOptions()) );
+    
+    context.realm = JS::EnterRealm(current_context, context.global);
+
+    define_js_console(current_context, context.global);
+    JS_DefineFunctions(current_context, context.global, api_functions);
+    define_enum_error(current_context, context.global);
+    define_const_board_side_size(current_context, context.global);
+    if (JS_IsExceptionPending(current_context))
+        throw 42;
+
+    JS::CompileOptions options(current_context);
+    options.setFileAndLine("./champion.js", 1);
+
+    if (champion_data.empty()) {
+        read_champion();
+    }
+
+    JS::SourceText<mozilla::Utf8Unit> source;
+    if (!source.init(current_context, champion_data.c_str(), champion_data.size(),  JS::SourceOwnership::Borrowed)) {
+        throw 42;
+    }
+
+    JS::RootedValue rval(current_context);
+    if (!JS::Evaluate(current_context, options, source, &rval)) {
+        js_report_error(current_context);
+        throw 42;
+    }
+}
+
+static const StechecCurrentThreadContext& init_js_thread() {
+    if (std::this_thread::get_id() == MAIN_THREAD_ID) {
+        if (!main_thread_initialized) {
+            main_thread_initialized = true;
+            main_current_thread_context.current_thread_context = cx;
+            setup_js_champion(cx, main_current_thread_context);
+        }
+        return main_current_thread_context;
+    }
+
+    JSContext *current_context = JS_NewContext(JS::DefaultHeapMaxBytes,
+            JS_GetRuntime(cx));
+
+    if (!JS::InitSelfHostedCode(current_context))
+        throw 42;
+
+    current_thread_context.current_thread_context = current_context;
+
+    setup_js_champion(current_context, current_thread_context);
+    return current_thread_context;
 }
 
 {% for func in game.user_function %}
 extern "C" {{ func|cxx_prototype }} {
-    init_js();
+    // This hack allow to destroy global object before JS Context
+    JSContext *js_context = nullptr;
+    {
+        const auto &context = init_js_thread();
+        js_context = context.current_thread_context;
 
-    JS::RootedValue js_ret(cx);
-    {% if func.fct_arg %}
-    JS::RootedValueArray<{{ func.fct_arg|length }}> args(cx);
-    {% for arg_name, arg_type, _ in func.fct_arg %}
-    {{ arg_type|cxx_to_js }}(cx, {{ arg_name }}, args[{{ loop.index0 }}]);
-    {% endfor %}
-    if (JS_IsExceptionPending(cx))
-        throw 42;
-    {% else %}
-    JS::HandleValueArray args = JS::HandleValueArray::empty();
-    {% endif %}
+        JS::RootedValue js_ret(context.current_thread_context);
+        {% if func.fct_arg %}
+        JS::RootedValueArray<{{ func.fct_arg|length }}> args(context.current_thread_context);
+        {% for arg_name, arg_type, _ in func.fct_arg %}
+        {{ arg_type|cxx_to_js }}(cx, {{ arg_name }}, args[{{ loop.index0 }}]);
+        {% endfor %}
+        if (JS_IsExceptionPending(context.current_thread_context))
+            throw 42;
+        {% else %}
+        JS::HandleValueArray args = JS::HandleValueArray::empty();
+        {% endif %}
 
-    if (!JS_CallFunctionName(cx, global, 
-        "{{ func.fct_name|camel_case(upper=False) }}", args, &js_ret)) {
-        js_report_error();
-        mozalloc_abort("");
+        if (!JS_CallFunctionName(context.current_thread_context, context.global, 
+            "{{ func.fct_name|camel_case(upper=False) }}", args, &js_ret)) {
+            js_report_error(context.current_thread_context);
+            mozalloc_abort("");
+        }
+
+        {% if func is returning %}
+
+        {{ func.fct_ret_type|cxx_type }} cxx_ret;
+        if (!{{ func.fct_ret_type|js_to_cxx }}(cx, js_ret, cxx_ret)) {
+            std::cerr
+                << "`{{ func.fct_name|camel_case(upper=False) }}` returned bad "
+                "value, expected type `{{ func.fct_ret_type|ts_type }}`"
+                << std::endl;
+            mozalloc_abort("");
+        }
+
+        if (MAIN_THREAD_ID != std::this_thread::get_id()) {
+            JS::LeaveRealm(context.current_thread_context, context.realm);
+        }
     }
-    {% if func is returning %}
-
-    {{ func.fct_ret_type|cxx_type }} cxx_ret;
-    if (!{{ func.fct_ret_type|js_to_cxx }}(cx, js_ret, cxx_ret)) {
-        std::cerr
-            << "`{{ func.fct_name|camel_case(upper=False) }}` returned bad "
-               "value, expected type `{{ func.fct_ret_type|ts_type }}`"
-            << std::endl;
-        mozalloc_abort("");
+    if (MAIN_THREAD_ID != std::this_thread::get_id()) {
+        JS_DestroyContext(js_context);
     }
+
     return cxx_ret;
+    {% else %}
+
+        if (MAIN_THREAD_ID != std::this_thread::get_id()) {
+            JS::LeaveRealm(context.current_thread_context, context.realm);
+        }
+    }
+    if (MAIN_THREAD_ID != std::this_thread::get_id()) {
+        JS_DestroyContext(js_context);
+    }
     {% endif %}
 }
 

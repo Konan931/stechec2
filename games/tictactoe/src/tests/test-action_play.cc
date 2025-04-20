@@ -9,7 +9,7 @@ TEST_F(ActionTest, ActionPlay_OutOfBounds)
 {
     st->set_player_can_play(PLAYER_1, true);
 
-    for (position pos : {(position){-1, 1}, {3, 1}, {0, 4}, {2, -7}})
+    for (position pos : {position{-1, 1}, {3, 1}, {0, 4}, {2, -7}})
     {
         ActionPlay act(pos, PLAYER_1);
         EXPECT_EQ(OUT_OF_BOUNDS, act.check(*st));

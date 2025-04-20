@@ -1,0 +1,12 @@
+get_filename_component(STECHEC2_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+include(CMakeFindDependencyMacro)
+
+find_dependency(cppzmq)
+find_dependency(gflags)
+
+if(NOT TARGET stechec2)
+    include("${STECHEC2_CMAKE_DIR}/Stechec2Targets.cmake")
+endif()
+
+set(STECHEC2_lIBRARIES Stechec2::Stechec2)

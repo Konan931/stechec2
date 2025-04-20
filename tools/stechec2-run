@@ -3,17 +3,18 @@
 
 import argparse
 import ctypes
+import datetime
 import itertools
 import os
 import os.path
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
 import time
 import yaml
-import signal
 
 parser = argparse.ArgumentParser(
     description='Run stechec processes for a match',
@@ -79,9 +80,10 @@ parser.add_argument(
 
 
 def version():
-    print('''stechec2-run.py
+    year = datetime.datetime.now().year
+    print(f'''stechec2-run.py
 
-Copyright © 2013-2014, Prologin.
+Copyright © 2013-{year}, Prologin.
 This is free software; see the source for copying conditions. There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.''')
 
