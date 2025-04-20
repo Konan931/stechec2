@@ -35,11 +35,11 @@
         $out/share/stechec2/${name}/player
     '';
   in
-    pkgs.symlinkJoin {
-      inherit name;
-      paths = [
-        game
-        (pkgs.lib.optional buildPlayerEnvironment playerEnvironment)
-      ];
-    };
+    # FIXME : better permissions handling
+    pkgs.runCommand "${name}" {} ''
+      mkdir -p $out
+      cp --no-preserve=mode -r ${game}/* $out/
+      chmod +x $out/lib/lib${name}.so
+      ${if buildPlayerEnvironment then "cp --no-preserve=mode -r ${playerEnvironment}/* $out/" else ""}
+    '';
 }
