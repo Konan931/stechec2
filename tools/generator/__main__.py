@@ -63,6 +63,8 @@ def main():
         '--check', action='store_true',
         help="Check that the generated player stubs compile",
     )
+    player_subparser.add_argument(
+        '--no-resolve', action='store_true', default=False)
 
     sp.add_parser('rules', help="generate boilerplate for api rules")
     sp.add_parser('texdoc', help="generate latex API doc of the game")
@@ -92,7 +94,7 @@ def main():
                                     .format(game['name']))
             else:
                 symlink = args.symlink
-        make_player(game, args.out_dir, symlink=symlink)
+        make_player(game, args.out_dir, symlink=symlink, resolve=not args.no_resolve)
         if args.check:
             check_player(args.out_dir)
     elif args.command == 'texdoc':

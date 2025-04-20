@@ -49,7 +49,7 @@ LANGUAGES = {
 }
 
 
-def make_player(game, out_dir: Path, symlink: Path = None) -> None:
+def make_player(game, out_dir: Path, symlink: Path = None, resolve: bool = True) -> None:
     """Generate the template to code a champion for a stechec project"""
 
     def gen_lang(lang: str, *, files, symlinks) -> None:
@@ -68,7 +68,7 @@ def make_player(game, out_dir: Path, symlink: Path = None) -> None:
                     new_path.unlink()
                 except FileNotFoundError:
                     pass
-                new_path.symlink_to(source_path.resolve())
+                new_path.symlink_to(source_path.resolve() if resolve else source_path)
             else:
                 gen.template(name)
 
