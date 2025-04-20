@@ -1,8 +1,4 @@
-{
-  pkgs,
-  stechec2,
-  stechec2-generator,
-}: {
+{pkgs}: {
   mkStechec2Game = {
     name,
     src,
@@ -23,17 +19,17 @@
         pkgs.cppzmq
         pkgs.gflags
         pkgs.libsodium
-        stechec2
+        pkgs.stechec2
       ];
       nativeBuildInputs = [
         pkgs.cmake
         pkgs.gtest
-        stechec2
+        pkgs.stechec2
       ];
     };
     playerEnvironment = pkgs.runCommand "${name}-player-environment" {} ''
       mkdir -p $out/share/stechec2/${name}/player
-      ${stechec2-generator}/bin/stechec2-generator \
+      ${pkgs.stechec2-generator}/bin/stechec2-generator \
         player \
         ${game}/share/stechec2/${name}/${name}.yml \
         $out/share/stechec2/${name}/player
