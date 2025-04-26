@@ -3,7 +3,7 @@
  #}
 {% extends "includes/Makefile-language.jinja2" %}
 
-{% block lang %}javascript{% endblock %}
+{% block lang %}js{% endblock %}
 
 {% block extra_flags %}
 CXXFLAGS += $(shell pkg-config --cflags mozjs-128)
