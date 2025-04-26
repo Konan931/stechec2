@@ -173,7 +173,7 @@ extern "C" {{ func|c_prototype(prefix='hs_') }};
 extern "C" {{ func|c_prototype }}
 {
     haskell_init();
-    hs_{{ func.fct_name }}();
+    hs_{{ func.fct_name }}({% for arg, _, _ in func.fct_arg %}{{ arg }}{% if not loop.last %}, {% endif %}{% endfor %});
     hs_perform_gc();
     for (void* ptr : __internal_need_free)
         free(ptr);

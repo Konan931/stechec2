@@ -333,7 +333,7 @@ extern "C" {{ func|cxx_prototype }}
 
     ZVAL_STRING(&fname, "{{ func.fct_name }}");
     {% for arg_name, arg_type, _ in func.fct_arg %}
-    params[{{ loop.index0 }}] = {{ arg_type|cxx_to_php }}({{ arg_name }})
+    params[{{ loop.index0 }}] = {{ arg_type|cxx_to_php }}({{ arg_name }});
     {% endfor %}
 
     if (call_user_function(EG(function_table), NULL, &fname, &ret, {{ func.fct_arg|length }}, {% if func.fct_arg %}params{% else %}NULL{% endif %}) == FAILURE)

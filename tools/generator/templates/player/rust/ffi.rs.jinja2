@@ -281,7 +281,6 @@ unsafe extern "C" {{ func|rust_prototype(ffi=True) }} {
     {% for arg, type, _ in func.fct_arg %}
     let {{ arg }} = {{ arg }}.to_rust();
     {% endfor %}
-    {% set separator = joiner(', ') %}
-    crate::{{ func.fct_name }}({{ separator() }}{% for field, _, _ in func.fct_arg %}{{ field }}{% endfor %}).to_c()
+    crate::{{ func.fct_name }}({% for arg, _, _ in func.fct_arg %}{{ arg }}{% if not loop.last %}, {% endif %}{% endfor %}).to_c()
 }
 {% endfor %}

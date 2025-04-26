@@ -247,7 +247,7 @@ extern "C" {{ func|cxx_prototype }}
     {% if func is returning %}{{ func.fct_ret_type|cxx_type }} out = {{ func.fct_ret_type|java_to_cxx }}({% endif -%}
     jrt.env->Call{{ func.fct_ret_type|java_type_method_call }}Method(jrt.prologin, method
     {%- for arg_name, arg_type, _ in func.fct_arg -%}
-    , {{ arg_type|java_to_cxx }}({{ arg_name }})
+    , {{ arg_type|cxx_to_java }}({{ arg_name }})
     {%- endfor %})
     {%- if func is returning %}){% endif %};
     if (jrt.env->ExceptionOccurred())
