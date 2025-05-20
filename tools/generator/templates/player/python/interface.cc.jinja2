@@ -12,6 +12,8 @@
 
 #include <Python.h>
 
+#include <dlfcn.h>
+
 static PyObject* py_module;
 static PyObject* champ_module;
 
@@ -346,6 +348,8 @@ static void __attribute__ ((constructor)) _init_python()
         std::cerr << "Error During the configuration of Python" << std::endl;
         abort();
     }
+
+    dlopen("libpython3.so", RTLD_NOW | RTLD_GLOBAL);
 
     {
         LockGIL lock_gil;

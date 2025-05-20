@@ -7,7 +7,8 @@
 
 {% block extra_flags %}
 # python3-config needs --embed in >=3.8 but the flag does not work in <3.8
-py_config = $(shell python3-config --embed >/dev/null && echo python3-config --embed || echo python3-config )
+py_config_program = $(shell realpath $(shell which python3-config))
+py_config = $(shell $(py_config_program) --embed >/dev/null && echo $(py_config_program) --embed || echo $(py_config_program))
 CXXFLAGS += $(shell $(py_config) --includes)
 LDFLAGS += $(shell $(py_config) --ldflags)
 {% endblock %}
