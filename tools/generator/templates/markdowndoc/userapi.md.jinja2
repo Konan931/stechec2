@@ -1,0 +1,105 @@
+# Documentation des langages
+
+## C
+
+Les booléens sont représentés par le type `bool`, défini par le standard du C99, et que l'on retrouve dans le header `stdbool.h`.
+
+Les fonctions prenant des tableaux en paramètres et retournant des tableaux utilisent à la place de ces tableaux une structure `type_array`, où `type` est le type des données dans le tableau. Ces structures contiennent deux éléments : les données, `type* items`, et la taille, `size_t length`. Dans tous les cas, la libération des données est laissée au soin du candidat.
+
+**Tout le reste est comme indiqué dans le sujet.**
+
+
+## C++
+
+Les tableaux sont représentés par des `std::vector<type>`.
+
+**Tout le reste est comme indiqué dans le sujet.**
+
+
+## C#
+
+Les fonctions à utiliser sont des méthodes statiques de la classe `Api`. Ainsi, pour utiliser la fonction `Foo`, il faut faire `Api.Foo`.
+
+Les noms des fonctions, structures et énumérations sont en `CamelCase`. Ainsi, une fonction nommée `foo_bar` dans le sujet s'appellera `FooBar` en C#.
+
+## Haskell
+
+L'API est fournie par le module `Api`.
+
+Les énumérations sont représentées par des types sommes, les structures par des records. Seule la première lettre des noms de types et de constructeurs est en majuscule. Le nom du constructeur d'une structure est son nom de type.
+
+La commande `make doc` permet de générer la documentation dans le fichier `doc/index.html` pour votre code ainsi que pour l'API.
+
+Pour pouvoir conserver des valeurs entre différents appels à vos fonctions à compléter, il faut utiliser des variables mutables :
+
+```haskell
+import Data.IORef
+import System.IO.Unsafe (unsafePerformIO)
+
+-- La pragma NOINLINE est importante !
+-- MonType ne doit pas etre polymorphe !
+<!-- NOINLINE maVariable -->
+maVariable :: IORef MonType
+maVariable = unsafePerformIO (newIORef maValeurInitiale)
+
+fonctionACompleter :: IO ()
+fonctionACompleter = do
+  maValeur <- readIORef maVariable
+  ...
+  writeIORef maVariable maValeur'
+
+```
+
+## Java
+
+Les fonctions à utiliser sont des méthodes statiques de la classe `Interface`. Ainsi, pour utiliser la fonction `foo`, il faut faire `Interface.foo`.
+
+Les structures sont représentées par des classes dont tous les attributs sont publics.
+
+## OCaml
+
+L'API est fournie par le fichier `api.ml`, qui est `open` par défaut par le fichier à compléter.
+
+Les énumérations sont représentées par des types sommes avec des constructeurs sans paramètres. Seule la première lettre des noms des constructeurs est en majuscule.
+
+<!-- TODO: template this, do not hardcode "position" -->
+Les structures sont représentées par des records, sauf pour la structure `position` qui est représentée par un couple `int * int`.
+
+Les tableaux sont représentés par des `array` Caml classiques.
+
+
+## PHP
+
+Les constantes sont définies via des `define` et doivent donc être utilisées sans les précéder d'un signe dollar.
+
+Les énumérations sont définies comme des séries de constantes. Se référer à la ligne au-dessus.
+
+Les structures sont gérées sous forme de tableaux associatifs. Ainsi, une structure contenant un champ `x` et un champ `y` sera créée comme ceci : `array('x' => 42, 'y' => 1337)`.
+
+
+## Python
+
+L'API est fournie par le module `api`, dont tout le contenu est importé par défaut par le code à compléter.
+
+Les énumérations sont représentées par des `IntEnum` Python, qui peuvent être utilisées comme ceci : `nom_enum.CHAMP`.
+
+Les structures sont représentées par des `NamedTuple` Python, dont on peut accéder aux champs via la notation pointée habituelle, et qui peuvent être créés comme ceci : `foo(bar=42, x=3)`, sauf pour la structure `position` qui est représentée par un couple (x, y).
+
+
+## Rust
+
+L'API est fournie par le module `api`, dont tout le contenu est importé par défaut par le code à compléter.
+
+Les noms des structures et énumérations sont en `CamelCase`. Ainsi, une structure nommée `foo_bar` dans le sujet s'appellera `FooBar` en Rust.
+
+Les tableaux sont représentés par des `Vec<T>` et les strings par des `String`. Les fonctions prennent leurs primitives empruntées `&[T]` et `&str` en entrée.
+
+## JavaScript
+
+L'API est définie sur l'objet global et documentée dans le fichier `api.d.ts`.
+
+Les structures sont représentées par des objets, les énumérations par des constantes sur des variables globales, les tuples par des tableaux.
+
+L'écriture sur la sortie standard et l'erreur standard s'effectue avec `console.log` et `console.error` respectivement. Les autres méthodes standard de `console` ne sont pas définies.
+
+

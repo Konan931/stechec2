@@ -11,6 +11,7 @@ from .player import check_player, make_player
 from .rules import make_rules
 from .texdoc import make_texdoc
 from .sphinxdoc import make_sphinxdoc
+from .markdowndoc import make_markdowndoc
 
 
 def get_install_prefix():
@@ -69,6 +70,7 @@ def main():
     sp.add_parser('rules', help="generate boilerplate for api rules")
     sp.add_parser('texdoc', help="generate latex API doc of the game")
     sp.add_parser('sphinxdoc', help="generate sphinx API doc of the game")
+    sp.add_parser('markdowndoc', help="generate markdown API doc of the game")
 
     parser.add_argument('yaml_file', type=game_or_yaml_path,
                         help="The game YAML file")
@@ -101,6 +103,8 @@ def main():
         make_texdoc(game, args.out_dir)
     elif args.command == 'sphinxdoc':
         make_sphinxdoc(game, args.out_dir)
+    elif args.command == 'markdowndoc':
+        make_markdowndoc(game, args.out_dir)
     else:
         raise RuntimeError("Unknown command {}.".format(args.command))
 
