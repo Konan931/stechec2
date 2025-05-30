@@ -7,6 +7,7 @@ import datetime
 import itertools
 import os
 import os.path
+import pathlib
 import shlex
 import shutil
 import signal
@@ -71,6 +72,12 @@ parser.add_argument(
 parser.add_argument(
     '-i', '--isolate', action='store_true',
     help='Isolate the clients with `isolate`'
+)
+
+parser.add_argument(
+    '-s', '--stats', type=pathlib.Path,
+    help='Save the statistics provided by the client using the given path as a base.'
+          ' The resulting file will be named <input_filename>.<client_name>.yaml .'
 )
 
 parser.add_argument(
@@ -207,6 +214,15 @@ def stechec2_run(args, options):
                              '--name', name]
         if is_spectator:
             opts.append('--spectator')
+
+        if args.stats != None:
+            stats_path = args.stats
+            new_file_name = f"{stats_path.stem}.{name}{stats_path.suffix}"
+            new_path = stats_path.parent / new_file_name
+
+            opts.append("--stats")
+            opts.append(str(new_path))
+
         client_popt = dict(popt)
         client_popt['env'] = dict(os.environ)
         client_popt['env']['CHAMPION_PATH'] = os.path.dirname(
