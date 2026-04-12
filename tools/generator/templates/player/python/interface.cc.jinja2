@@ -263,7 +263,8 @@ static PyObject* p_{{ func.fct_name }}(PyObject* /* self */, PyObject* args)
         {% if not func is returning %}
         Py_RETURN_NONE;
         {% endif %}
-    } catch (...) {
+    } catch (std::exception &e) {
+        PyErr_SetString(PyExc_RuntimeError, e.what());
         return nullptr;
     }
 }
