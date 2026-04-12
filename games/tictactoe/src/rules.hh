@@ -38,6 +38,8 @@ public:
     void start_of_player_turn(unsigned int player_id) override;
     void end_of_player_turn(unsigned int player_id) override;
 
+    void dump_state(std::ostream& ostream) override;
+
     bool is_finished() override;
 
     GameState& game_state();

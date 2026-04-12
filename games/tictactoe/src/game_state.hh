@@ -38,7 +38,7 @@ private:
     static constexpr size_t PLAYER_COUNT = 2;
     static constexpr int LAST_PLAYER = PLAYER_COUNT - 1;
 
-    int current_player_;
+    int current_player_ = -1;
     std::array<bool, PLAYER_COUNT> player_can_play_;
     std::vector<int> board_;
 };

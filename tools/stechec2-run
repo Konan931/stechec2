@@ -58,6 +58,10 @@ parser.add_argument(
     '-p', '--process', metavar='P', type=int, action='append', default=[],
     help='Start process number P only (same numbering scheme as for -n'
 )
+parser.add_argument(
+    '-t', '--time', metavar='P', type=int, default=1000,
+    help='Set a timeout for champion, 0 means no timeout'
+)
 
 # Debugging options
 parser.add_argument(
@@ -145,7 +149,7 @@ def stechec2_run(args, options):
     client_opt += [options.get('client', shutil.which('stechec2-client'))]
 
     server_opt += ['--rep_addr', s_reqrep, '--pub_addr', s_pubsub]
-    client_opt += ['--req_addr', s_reqrep, '--sub_addr', s_pubsub]
+    client_opt += ['--req_addr', s_reqrep, '--sub_addr', s_pubsub, '--time', f"{args.time}"]
 
     clients = options.get('clients', [])
     client_names = options.get('names', [])

@@ -117,6 +117,26 @@ void Rules::end_of_player_turn(unsigned int player_id)
     api_->game_state().compute_scores();
 }
 
+void Rules::dump_state(std::ostream& ostream)
+{
+    const GameState &game_state = api_->game_state();
+
+    ostream << "=====\n" <<
+        "player: "<< game_state.get_current_player() << "\n"
+        << "board:\n";
+
+    const auto &board = game_state.get_board();
+    auto it = std::cbegin(board);
+    for (size_t i = 0; i < 3; i++) {
+        for (size_t j = 0; j < 3 - 1; j++, it++) {
+            ostream << std::right << std::setfill(' ') << std::setw(2)
+                << *it << "  "; // double space for -1
+        }
+        ostream << *it << "\n";
+        it++;
+    }
+}
+
 bool Rules::is_finished()
 {
     return api_->game_state().is_finished();

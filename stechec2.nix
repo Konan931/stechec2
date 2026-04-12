@@ -40,6 +40,10 @@
       mkdir -p $out
       cp --no-preserve=mode -r ${game}/* $out/
       chmod +x $out/lib/lib${name}.so
-      ${if buildPlayerEnvironment then "cp --no-preserve=mode -r ${playerEnvironment}/* $out/" else ""}
+      ${
+        if buildPlayerEnvironment
+        then "cp --no-preserve=mode -r ${playerEnvironment}/* $out/"
+        else ""
+      }
     '';
 }

@@ -1,0 +1,8 @@
+rules: ../../build/games/tictactoe/libtictactoe.so
+server: ../../build/src/server/stechec2-server
+client: ../../build/src/client/stechec2-client
+verbose: 300
+names:
+  - Player 1
+  - Player 2
+map: ./empty.map
