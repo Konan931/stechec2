@@ -1,6 +1,7 @@
 set(lib_sources
     utils/dll.cc
     utils/log.cc
+    utils/np.cc
 
     net/socket.cc
     net/server-socket.cc
@@ -39,6 +40,7 @@ set(lib_headers
     utils/buffer.hh
     utils/dll.hh
     utils/log.hh
+    utils/np.hh
     utils/sandbox.hh
     utils/sandbox.inl
 )

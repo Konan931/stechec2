@@ -12,6 +12,8 @@
 
 #ifdef __FreeBSD__
 #include <pthread_np.h>
+#elif defined(__APPLE__)
+#include "np.hh"
 #endif
 
 // Implementation of the sandbox. Lots of tricky C++ to get a nice user API,

@@ -99,7 +99,7 @@ This is free software; see the source for copying conditions. There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.''')
 
 
-LIBC = ctypes.CDLL('libc.so.6')
+LIBC = ctypes.CDLL('libc.dylib' if sys.platform == "darwin" else 'libc.so.6')
 LIBC.strsignal.restype = ctypes.c_char_p
 
 

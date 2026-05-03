@@ -106,7 +106,8 @@
           spidermonkey_128.dev
           stechec2-generator
           stechec2-run
-          systemd
+        ] ++ pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
+          pkgs.systemd
         ];
         checkPhase = ''
           mktemp -d
@@ -150,7 +151,6 @@
         stechec2 = pkgs.mkShell {
           buildInputs = with pkgs; [
             gtest
-            isolate
             pkg-config
             stechec2
           ];
@@ -159,10 +159,15 @@
           ];
         };
         default = pkgs.mkShell {
-          nativeBuildInputs = [
+          buildInputs = [
+            pkgs.gtest
+            pkgs.pkg-config
             pkgs.stechec2
             pkgs.stechec2-generator
             pkgs.stechec2-run
+          ];
+          inputsFrom = [
+            pkgs.stechec2
           ];
         };
         generatorAllLanguages = pkgs.mkShell {

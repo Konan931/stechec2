@@ -122,7 +122,7 @@ def configure(conf):
     conf.check_cxx(lib="gflags", mandatory=True, uselib_store="gflags")
 
     # -lrt
-    conf.check_cxx(lib="rt", mandatory=True, uselib_store="rt")
+    conf.check_cxx(lib="rt", mandatory=False, uselib_store="rt")
 
     # Werror support - at the end to avoid false negatives in the checks
     if conf.options.werror:
@@ -168,6 +168,7 @@ def coverage(ctx):
 def build_lib(bld):
     bld.shlib(source='''
             src/lib/utils/dll.cc
+            src/lib/utils/np.cc
             src/lib/utils/log.cc
 
             src/lib/net/socket.cc

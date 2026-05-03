@@ -9,6 +9,8 @@ add_compile_options(
   -Wall
   -Wextra
   -Wpedantic
+  # explicitly disable hardening for macOS (default is already none on Linux)
+  -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_NONE
   )
 
 include(CTest)
