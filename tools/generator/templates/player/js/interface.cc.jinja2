@@ -415,7 +415,7 @@ static void setup_js_champion(JSContext *current_context, StechecCurrentThreadCo
     define_js_console(current_context, context.global);
     JS_DefineFunctions(current_context, context.global, api_functions);
     define_enum_error(current_context, context.global);
-    define_const_board_side_size(current_context, context.global);
+    // define_const_board_side_size(current_context, context.global);
     if (JS_IsExceptionPending(current_context))
         throw 42;
 
