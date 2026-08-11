@@ -164,15 +164,13 @@ std::vector<CxxType> python_to_cxx_array(PyObject* in)
 template<>
 PyObject* cxx_to_python<PyObject*, {{ enum.enum_name }}>({{ enum.enum_name }} in)
 {
-    PyObject* name = PyUnicode_FromString("{{ enum.enum_name }}");
-    PyObject* enm = PyObject_GetAttr(py_module, name);
-    Py_DECREF(name);
+    PyObject* enm = PyObject_GetAttrString(py_module, "{{ enum.enum_name }}");
     if (enm == nullptr)
         throw 42;
-    PyObject* arglist = Py_BuildValue("(i)", static_cast<int>(in));
-    PyObject* ret = PyObject_CallObject(enm, arglist);
+    PyObject* arg = PyLong_FromLong(static_cast<int>(in));
+    PyObject* ret = PyObject_CallOneArg(enm, arg);
     Py_DECREF(enm);
-    Py_DECREF(arglist);
+    Py_DECREF(arg);
     return ret;
 }
 
@@ -196,9 +194,7 @@ PyObject* cxx_to_python<PyObject*, {{ struct.str_name }}>({{ struct.str_name }} 
     {% if struct.str_tuple %}
     return tuple;
     {% else %}
-    PyObject* name = PyUnicode_FromString("{{ struct.str_name }}");
-    PyObject* cstr = PyObject_GetAttr(py_module, name);
-    Py_DECREF(name);
+    PyObject* cstr = PyObject_GetAttrString(py_module, "{{ struct.str_name }}");
     if (cstr == nullptr)
         throw 42;
     PyObject* ret = PyObject_CallObject(cstr, tuple);
@@ -345,6 +341,7 @@ static void __attribute__ ((constructor)) _init_python()
 
     PyImport_AppendInittab("_api", PyInit__api);
     status = Py_InitializeFromConfig(&config);
+    PyConfig_Clear(&config);
     if (PyStatus_Exception(status) != 0) {
         std::cerr << "Error During the configuration of Python" << std::endl;
         abort();
@@ -354,6 +351,15 @@ static void __attribute__ ((constructor)) _init_python()
 
     {
         LockGIL lock_gil;
+        PyObject* fh = PyImport_ImportModule("faulthandler");
+        if (fh != nullptr) {
+            PyObject* res = PyObject_CallMethod(fh, "enable", nullptr);
+            Py_XDECREF(res);
+            Py_DECREF(fh);
+        } else {
+            PyErr_Clear();
+        }
+
         // Import a Champion module with an uppercase letter to avoid conflict with
         // champion.so
         champ_module = _import_module("Champion");
@@ -397,15 +403,14 @@ static void flush_std_files()
 // Run a Python function.
 static PyObject* _call_python_function(const char* name)
 {
-    PyObject *arglist, *func;
+    PyObject *func;
     PyObject *result = nullptr;
 
     func = PyObject_GetAttrString(champ_module, name);
-    if (func && PyCallable_Check(func))
+    if (func != nullptr)
     {
-        arglist = Py_BuildValue("()");
-        result = PyObject_CallObject(func, arglist);
-        Py_XDECREF(arglist);
+        if (PyCallable_Check(func))
+            result = PyObject_CallNoArgs(func);
         Py_DECREF(func);
     }
     if (result == nullptr && PyErr_Occurred())
