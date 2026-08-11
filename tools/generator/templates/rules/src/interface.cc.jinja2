@@ -26,12 +26,14 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& arr)
 }
 
 {% for func in game.function %}
+{% if not func.fct_generated %}
 
 extern "C" {{ func|cxx_prototype(prefix='api_') }}
 {
     {%+ if func is returning %}return {% endif -%}
     api->{{ func.fct_name }}({{ func.fct_arg|map('first')|join(', ') }});
 }
+{% endif %}
 {% endfor %}
 
 {% for enum in game.enum %}

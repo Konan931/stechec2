@@ -142,6 +142,7 @@ class Game:
                                 .format(t)),
                 'fct_arg': [('v', t, 'The value to display')],
                 'fct_ret_type': 'void',
+                'fct_generated': True,
             })
         for e in self.game['enum']:
             add_display(e['enum_name'])

@@ -18,7 +18,7 @@ Api::Api(std::unique_ptr<GameState> game_state,
 
 {# Generate the C++ definition for each API function #}
 {% for func in game.function %}
-{% if not func.fct_action %}
+{% if not func.fct_action and not func.fct_generated %}
 {{ func|cxx_prototype(prefix='Api::') }}
 {
     // TODO

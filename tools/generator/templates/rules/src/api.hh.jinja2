@@ -27,6 +27,7 @@ public:
 
 {# Generate the C++ declaration for each API function #}
 {% for func in game.function %}
+{% if not func.fct_generated %}
 {# Since this is a header, generate the function documentation #}
     {{ func.fct_summary|cxx_comment(indent=4, doc=True) }}
 {% if func.fct_action %}
@@ -38,5 +39,6 @@ public:
     {{ func|cxx_prototype }};
 {% endif %}
 
+{% endif %}
 {% endfor %}
 };
