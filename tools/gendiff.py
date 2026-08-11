@@ -97,6 +97,7 @@ def git_checkout(commit):
             ['git', 'worktree', 'add', td, commit]
         )
         yield td
+        subprocess.run(['git', 'worktree', 'remove', td])
 
 
 def main():
