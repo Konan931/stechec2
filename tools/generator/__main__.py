@@ -98,7 +98,8 @@ def main():
                                     .format(game['name']))
             else:
                 symlink = args.symlink
-        make_player(game, args.out_dir, symlink=symlink, resolve=not args.no_resolve)
+        make_player(game, args.out_dir, symlink=symlink,
+                    resolve=not args.no_resolve)
         if args.check:
             check_player(args.out_dir)
     elif args.command == 'texdoc':

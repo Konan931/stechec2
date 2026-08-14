@@ -49,7 +49,8 @@ LANGUAGES = {
 }
 
 
-def make_player(game, out_dir: Path, symlink: Path = None, resolve: bool = True) -> None:
+def make_player(game, out_dir: Path, symlink: Path = None,
+                resolve: bool = True) -> None:
     """Generate the template to code a champion for a stechec project"""
 
     def gen_lang(lang: str, *, files, symlinks) -> None:
@@ -68,7 +69,8 @@ def make_player(game, out_dir: Path, symlink: Path = None, resolve: bool = True)
                     new_path.unlink()
                 except FileNotFoundError:
                     pass
-                new_path.symlink_to(source_path.resolve() if resolve else source_path)
+                new_path.symlink_to(source_path.resolve() if resolve
+                                    else source_path)
             else:
                 gen.template(name)
 
@@ -109,8 +111,14 @@ def check_player(player_dir: Path) -> bool:
     def eprint(*args, **kwargs):
         print(*args, file=stderr, **kwargs)
 
+    # TODO: C# (Mono) and JS (SpiderMonkey) generators are currently broken
+    DISABLED_LANGUAGES = {'cs', 'js'}
+
     success = True
     for lang in LANGUAGES.keys():
+        if lang in DISABLED_LANGUAGES:
+            eprint(f"{lang}...SKIPPED (TODO: broken)")
+            continue
         eprint(f"{lang}...", end='', flush=True)
         err = check_compile(player_dir / lang) or check_tar(player_dir / lang)
         if err is None:

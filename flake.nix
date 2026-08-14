@@ -127,7 +127,7 @@
           cp ${packages.tictactoe}/share/stechec2/tictactoe/tictactoe.yml $out/games/tictactoe/tictactoe.yml
 
           cd $out/tests/env_tester
-          pytest tests.py
+          pytest -p no:cacheprovider tests.py
         '';
       };
 
@@ -150,6 +150,7 @@
       devShells = {
         stechec2 = pkgs.mkShell {
           buildInputs = with pkgs; [
+            clang
             gtest
             pkg-config
             stechec2
@@ -160,6 +161,7 @@
         };
         default = pkgs.mkShell {
           buildInputs = [
+            pkgs.clang
             pkgs.gtest
             pkgs.pkg-config
             pkgs.stechec2
@@ -176,13 +178,18 @@
             pkgs.stechec2-run
             pkgs.python3
             pkgs.python3Packages.pytest
+            pkgs.python3Packages.pytest-cov
             pkgs.cmake
             pkgs.pkg-config
             pkgs.cppzmq
             pkgs.gflags
             pkgs.libsodium
             pkgs.stechec2
-            pkgs.php
+            pkgs.php-prologin
+            pkgs.php-unwrapped-prologin.dev
+            pkgs.libargon2
+            pkgs.libxml2
+            pkgs.pcre2
             pkgs.php82Extensions.ffi
             pkgs.php82Extensions.ffi.dev
             pkgs.php82Extensions.ctype

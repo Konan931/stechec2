@@ -1,0 +1,101 @@
+default:
+  image: nixpkgs/nix-flakes:nixos-25.11
+  tags:
+    - nix
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+stages:
+  - build
+  - test
+
+.common:
+  artifacts:
+    expire_in: 2 days
+
+.build-common:
+  extends: .common
+  stage: build
+  script:
+    - |
+      nix develop --command bash -c "
+        cmake -S . -B build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_COMPILER=${CXX} \
+          ${CMAKE_FLAGS:-} \
+          && cmake --build build -j$(nproc) \
+          && ctest --test-dir build --output-on-failure
+      "
+
+# ---------------------------------------------------------------------------
+# Build & Test jobs (matrix: GCC / Clang / Clang+ASAN)
+# ---------------------------------------------------------------------------
+build-gcc:
+  extends: .build-common
+  variables:
+    CXX: g++
+    CMAKE_FLAGS: "-DCMAKE_CXX_FLAGS=--coverage -DCMAKE_EXE_LINKER_FLAGS=--coverage"
+  coverage: '/lines\.\.\.\.\.\.: (\d+\.\d+)%/'
+  after_script:
+    - |
+      nix shell nixpkgs#gcovr --command gcovr -r . --cobertura build/cobertura.xml --exclude '.*/tests/.*' --exclude '/nix/.*'
+  artifacts:
+    expire_in: 2 days
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: build/cobertura.xml
+
+build-clang:
+  extends: .build-common
+  variables:
+    CXX: clang++
+
+build-clang-asan:
+  extends: .build-common
+  variables:
+    CXX: clang++
+    CMAKE_FLAGS: "-DCMAKE_CXX_FLAGS='-fsanitize=address -fno-omit-frame-pointer' -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=address'"
+
+# ---------------------------------------------------------------------------
+# Generator tests — via Nix flake check (nix build .#checks.champions)
+# ---------------------------------------------------------------------------
+generator-test-nix-check:
+  extends: .common
+  stage: test
+  needs: []
+  script:
+    - nix build .#checks.x86_64-linux.champions --no-link --print-build-logs
+
+# ---------------------------------------------------------------------------
+# Generator tests — manual pytest + flake8 (via generatorAllLanguages devShell)
+# ---------------------------------------------------------------------------
+generator-test-pytest:
+  extends: .common
+  stage: test
+  needs: []
+  coverage: '/TOTAL.*\s+(\d+)%/'
+  script:
+    - |
+      nix develop .#generatorAllLanguages --command bash -c "
+        cd tools && PYTHONPATH=.:\$PYTHONPATH python3 -m pytest --cov --cov-report=xml -v generator/test
+      "
+  artifacts:
+    expire_in: 2 days
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: tools/coverage.xml
+
+generator-lint-flake8:
+  extends: .common
+  stage: test
+  needs: []
+  script:
+    - |
+      nix shell nixpkgs#python3Packages.flake8 --command bash -c "
+        cd tools/generator && flake8 . --count --show-source --statistics --exclude test/languages
+      "
