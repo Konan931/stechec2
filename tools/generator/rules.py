@@ -21,8 +21,7 @@ def make_rules(game, out_dir: Path) -> None:
         'src/rules.cc',
         'src/entry.cc',
         'src/game_state.cc',
-        'src/game_state.hh',
-        'wscript'
+        'src/game_state.hh'
     ]
     for tpl in base_files:
         gen.template(tpl)

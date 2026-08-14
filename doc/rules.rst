@@ -287,15 +287,15 @@ PATH:
 You will have to complete some of these files: ``action_*.cc``, ``api.cc``,
 ``game_state.cc``, ``game_state.hh``, ``rules.cc`` and ``rules.hh``.
 
-The wscript
-===========
+The CMakeLists.txt
+==================
 
-Stechec2 uses the waf.py Makefile-like to build the games. If you used the
-``stechec2-generator rules`` command, then a ``wscript`` file was created for
+Stechec2 uses CMake to build games. If you used the
+``stechec2-generator rules`` command, then a ``CMakeLists.txt`` file was created for
 you. It is alongside the ``src`` folder.
 
-If you add new source files in ``src``, you will have to add them in the
-``source`` string of the ``wscript``.
+If you add new source files in ``src``, you will have to add them to the
+``target_sources()`` call in your ``CMakeLists.txt``.
 
 
 The rules
@@ -416,68 +416,29 @@ Create the following tests:
 
 * **CheckWinner**: checks that you winner() function works correctly
 
-To take tests into account, you first need to update your ``wscript``
+To take tests into account, you first need to add a ``src/tests/CMakeLists.txt``
+and register it from your game's ``CMakeLists.txt`` with
+``add_subdirectory(src/tests)``.
 
-.. code-block:: python
-  :emphasize-lines: 3,4, 29-47
+A minimal ``src/tests/CMakeLists.txt`` looks like:
 
-  #! /usr/bin/env python
+.. code-block:: cmake
 
-  import glob
-  import os.path
+  file(GLOB TEST_SOURCES test-*.cc)
+  foreach(TEST_SRC ${TEST_SOURCES})
+      get_filename_component(TEST_NAME ${TEST_SRC} NAME_WE)
+      string(REPLACE "test-" "connect4-test-" TEST_TARGET ${TEST_NAME})
+      add_executable(${TEST_TARGET} ${TEST_SRC})
+      target_link_libraries(${TEST_TARGET} PRIVATE connect4 GTest::GTest GTest::Main)
+      target_include_directories(${TEST_TARGET} PRIVATE ..)
+      gtest_discover_tests(${TEST_TARGET})
+  endforeach()
 
-
-  def options(opt):
-      pass
-
-  def configure(cfg):
-      pass
-
-  def build(bld):
-      bld.shlib(
-          source = '''
-              src/action_drop.cc
-              src/api.cc
-              src/entry.cc
-              src/game_state.cc
-              src/interface.cc
-              src/rules.cc
-          ''',
-          defines = ['MODULE_COLOR=ANSI_COL_BROWN', 'MODULE_NAME="rules"'],
-          target = 'connect4',
-          use = ['stechec2'],
-      )
-
-
-      abs_pattern = os.path.join(bld.path.abspath(), 'src/tests/test-*.cc')
-      for test_src in glob.glob(abs_pattern):
-
-          test_name = os.path.split(test_src)[-1]
-          test_name = test_name[5:-3]
-
-          # Waf requires a relative path for the source
-          src_relpath = os.path.relpath(test_src, bld.path.abspath())
-
-          bld.program(
-              features = 'gtest',
-              source = src_relpath,
-              target = 'connect4-test-{}'.format(test_name),
-              use = ['connect4', 'stechec2-utils'],
-              includes = ['.'],
-              defines = ['MODULE_COLOR=ANSI_COL_PURPLE',
-              'MODULE_NAME="connect4"'],
-          )
-
-      bld.install_files('${PREFIX}/share/stechec2/connect4', [
-          'connect4.yml',
-      ])
-
-
-To run the tests, you just have to build using the ``--check`` option:
+To run the tests:
 
 .. code-block:: bash
 
-  ./waf.py build --check
+  cd build && ctest --output-on-failure .
 
 Running the testsuite is particularly useful when used along with coverage
 reports (see the :ref:`development` section).

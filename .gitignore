@@ -1,9 +1,8 @@
 .lock-*
-build
+build*/
 .unittest-gtest
 __pycache__
 *.pyc
-.waf*
 tools/rubygenerator/test/c
 tools/rubygenerator/test/caml
 tools/rubygenerator/test/cs

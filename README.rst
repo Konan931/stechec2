@@ -21,10 +21,10 @@ the Stechec2 distribution.
 Requirements
 ------------
 
-* gcc >= 4.7
-* python
+* cmake >= 3.23
+* gcc >= 4.7 (or clang)
 * zeromq
-* zeromq C++ wrapper
+* zeromq C++ wrapper (cppzmq)
 * google-gflags
 * googletest
 * gcovr (for code coverage reports)
@@ -34,51 +34,15 @@ Requirements
 
 Arch Linux::
 
-  pacman --needed -S gcc zeromq gtest python-yaml python-jinja gflags gcovr
+  pacman --needed -S cmake gcc zeromq cppzmq gtest python-yaml python-jinja gflags gcovr
 
-Debian::
+Debian/Ubuntu::
 
-  apt-get install build-essential libzmq3-dev python3-yaml \
-      python3-jinja2 libgtest-dev libgflags-dev gcovr pkg-config
-
-Ubuntu::
-
-  apt-get install build-essential libzmq3-dev libzmqpp-dev python3-yaml \
+  apt-get install build-essential cmake libzmq3-dev libcppzmq-dev python3-yaml \
       python3-jinja2 libgtest-dev libgflags-dev gcovr pkg-config
 
 
 
-
-Installation with Waf
----------------------
-
-Let's assume you want to install stechec2 with all the Prologin games, and then
-use it as a player.
-
-Clone the stechec2 repository::
-
-  git clone https://github.com/prologin/stechec2
-  cd stechec2
-
-Then put every game you want to install in ``games/``::
-
-  for game in prologin{2012..2016}; do
-    git clone https://github.com/prologin/${game}.git games/$game
-  done
-
-A simple test game, ``tictactoe``, is already installed in ``games/``.
-
-You can then configure the project using waf, while specifying the games you
-want to use::
-
-  ./waf.py configure --with-games=tictactoe,prologin2016 --prefix=/usr
-
-Then build and install it::
-
-  ./waf.py build install
-
-**Archlinux**: A PKGBUILD is available in ``pkg/stechec2``:
-run ``makepkg && pacman -U stechec2-*.pkg.tar.xz``.
 
 Installation with CMake
 =======================
