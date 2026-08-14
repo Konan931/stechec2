@@ -1,0 +1,96 @@
+// << stechec2_generated >>
+
+<% for constant in game.constant %>
+#block(breakable: false)[
+#table(
+  columns: (auto, 1fr),
+  stroke: none,
+  column-gutter: 1em,
+  [*Constante*], [<< constant.cst_name >>],
+  [*Valeur*], [<< constant.cst_val >>],
+  [*Description*], [<< constant.cst_comment >>],
+)
+]
+<% endfor %>
+
+<% for enum in game.enum %>
+#block(breakable: false)[
+#heading(level: 2, outlined: false)[<< enum.enum_name >>]
+
+*Description :* << enum.enum_summary >>
+
+*Valeurs :*
+#table(
+  columns: (auto, 1fr),
+  stroke: none,
+  column-gutter: 1em,
+  <% for field_name, field_comment in enum.enum_field %>
+  [_<< field_name|upper >>_], [<< field_comment >>],
+  <% endfor %>
+)
+]
+<% endfor %>
+
+<% for struct in game.struct %>
+#block(breakable: false)[
+#heading(level: 2, outlined: false)[<< struct.str_name >>]
+
+```cpp
+struct << struct.str_name|safe >> {
+    <% for field_name, field_type, field_comment in struct.str_field %>
+    << field_type|safe >> << field_name|safe >>;
+    <% endfor %>
+};
+```
+
+*Description :* << struct.str_summary >>
+
+*Champs :*
+#table(
+  columns: (auto, 1fr),
+  stroke: none,
+  column-gutter: 1em,
+  <% for field_name, field_type, field_comment in struct.str_field %>
+  [_<< field_name >>_], [<< field_comment >>],
+  <% endfor %>
+)
+]
+<% endfor %>
+
+<% for func in game.function %>
+#block(breakable: false)[
+#heading(level: 2, outlined: false)[<< func.fct_name >>]
+
+```cpp
+<< func|generic_prototype|safe >>
+```
+
+*Description :* << func.fct_summary >>
+
+<% if func.fct_arg_comment or func.fct_arg -%>
+*Paramètres :*
+<% if func.fct_arg_comment -%>
+<< func.fct_arg_comment >>
+<% endif %>
+#table(
+  columns: (auto, 1fr),
+  stroke: none,
+  column-gutter: 1em,
+  <% for arg_name, arg_type, arg_comment in func.fct_arg -%>
+    <% if arg_comment %>
+    [_<< arg_name >>_], [<< arg_comment >>],
+    <% endif %>
+  <% endfor %>
+)
+<% endif %>
+
+<% if func.fct_ret_comment %>
+*Retour :* << func.fct_ret_comment >>
+<% endif %>
+
+<% if func.fct_notice %>
+*Remarques :* << func.fct_notice >>
+<% endif %>
+
+]
+<% endfor %>
